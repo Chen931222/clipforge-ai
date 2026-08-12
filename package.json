@@ -1,0 +1,71 @@
+{
+  "name": "clipforge-ai",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": ">=20.11"
+  },
+  "scripts": {
+    "dev": "next dev -p 3410",
+    "build": "next build",
+    "start": "next start -p 3410",
+    "lint": "eslint .",
+    "typecheck": "tsc --noEmit",
+    "db:generate": "prisma generate",
+    "db:migrate": "prisma migrate deploy",
+    "db:seed": "tsx prisma/seed.ts",
+    "db:reset": "node scripts/reset-db.mjs",
+    "setup": "prisma generate && prisma migrate deploy && tsx prisma/seed.ts",
+    "worker": "tsx scripts/render-worker.ts",
+    "test": "vitest run tests/unit",
+    "test:watch": "vitest",
+    "e2e:reset": "cross-env DATABASE_URL=file:./e2e.db node scripts/reset-db.mjs",
+    "e2e:serve": "cross-env DATABASE_URL=file:./e2e.db next start -p 3411",
+    "test:e2e": "pnpm build && pnpm e2e:reset && playwright test",
+    "verify": "pnpm lint && pnpm typecheck && pnpm test && pnpm build"
+  },
+  "prisma": {
+    "seed": "tsx prisma/seed.ts"
+  },
+  "pnpm": {
+    "onlyBuiltDependencies": [
+      "@prisma/client",
+      "@prisma/engines",
+      "prisma",
+      "esbuild",
+      "sharp",
+      "unrs-resolver"
+    ]
+  },
+  "dependencies": {
+    "@prisma/client": "6.19.3",
+    "@remotion/bundler": "^4.0.507",
+    "@remotion/player": "^4.0.507",
+    "@remotion/renderer": "^4.0.507",
+    "clsx": "2.1.1",
+    "next": "15.5.22",
+    "react": "19.2.8",
+    "react-dom": "19.2.8",
+    "remotion": "^4.0.507",
+    "ws": "^8.21.3",
+    "zod": "4.4.3"
+  },
+  "devDependencies": {
+    "@eslint/eslintrc": "3.3.6",
+    "@playwright/test": "1.62.1",
+    "@tailwindcss/postcss": "4.3.3",
+    "@types/node": "24.13.3",
+    "@types/react": "19.2.18",
+    "@types/react-dom": "19.2.4",
+    "@types/ws": "^8.18.1",
+    "cross-env": "10.1.0",
+    "eslint": "9.39.5",
+    "eslint-config-next": "15.5.22",
+    "prisma": "6.19.3",
+    "tailwindcss": "4.3.3",
+    "tsx": "4.23.8",
+    "typescript": "5.9.3",
+    "vitest": "3.2.7"
+  }
+}

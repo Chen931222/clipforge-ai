@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 240 240">
+  <rect width="240" height="240" rx="24" fill="#35544A"/>
+  <circle cx="120" cy="104" r="58" fill="none" stroke="#F4EFE6" stroke-width="5"/>
+  <text x="120" y="126" text-anchor="middle" font-family="serif" font-size="60" fill="#F4EFE6">森</text>
+  <text x="120" y="204" text-anchor="middle" font-family="serif" font-size="28" letter-spacing="6" fill="#D9C08B">森日茶研</text>
+</svg>

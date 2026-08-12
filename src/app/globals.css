@@ -1,0 +1,86 @@
+@import "tailwindcss";
+
+/* 視覺世界：製片／錄音室紙本作業系統（見 DESIGN.md） */
+@theme inline {
+  --color-paper: #f7f5f0;
+  --color-sheet: #ffffff;
+  --color-ink: #1c1a15;
+  --color-ink-60: #5c574b;
+  --color-ink-40: #8a8478;
+  --color-rule: #d9d4c8;
+  --color-rec: #c8321e;
+  --color-rec-dark: #a82717;
+  --color-well: #17150f;
+  --font-serif: var(--font-noto-serif), "PMingLiU", serif;
+  --font-sans: var(--font-noto-sans), "Microsoft JhengHei", sans-serif;
+  --font-mono: var(--font-chivo-mono), ui-monospace, monospace;
+}
+
+body {
+  background-color: var(--color-paper);
+  color: var(--color-ink);
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+}
+
+/* 手機版寬表格不得撐破 grid 子項（前案教訓） */
+.grid > * {
+  min-width: 0;
+}
+
+/* REC 燈：全站唯一的循環動畫（渲染中狀態） */
+@keyframes rec-breathe {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.35;
+  }
+}
+.rec-dot {
+  animation: rec-breathe 1.2s ease-in-out infinite;
+}
+@media (prefers-reduced-motion: reduce) {
+  .rec-dot {
+    animation: none;
+  }
+}
+
+/* 表單欄名（印刷欄位標籤） */
+.field-label {
+  font-size: 0.8125rem;
+  font-weight: 500;
+  letter-spacing: 0.05em;
+  color: var(--color-ink-60);
+}
+
+/* 髮絲線表格 */
+.cue-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+.cue-table th {
+  text-align: left;
+  font-size: 0.75rem;
+  font-weight: 500;
+  letter-spacing: 0.08em;
+  color: var(--color-ink-40);
+  padding: 0.5rem 0.75rem;
+  border-bottom: 1px solid var(--color-ink);
+  white-space: nowrap;
+}
+.cue-table td {
+  padding: 0.625rem 0.75rem;
+  border-bottom: 1px solid var(--color-rule);
+  vertical-align: top;
+}
+
+input[type="color"] {
+  inline-size: 2.5rem;
+  block-size: 2rem;
+  padding: 0;
+  border: 1px solid var(--color-rule);
+  border-radius: 4px;
+  background: var(--color-sheet);
+}

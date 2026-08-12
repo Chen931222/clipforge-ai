@@ -1,0 +1,12 @@
+node_modules/
+.next/
+out/
+var/
+*.db
+*.db-journal
+.env
+.env.local
+playwright-report/
+test-results/
+.remotion/
+tsconfig.tsbuildinfo

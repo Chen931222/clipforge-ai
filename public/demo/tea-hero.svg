@@ -1,0 +1,30 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1600 900">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#2E4A40"/>
+      <stop offset="1" stop-color="#1E332C"/>
+    </linearGradient>
+    <linearGradient id="lid" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#3E6154"/>
+      <stop offset="1" stop-color="#335146"/>
+    </linearGradient>
+  </defs>
+  <rect width="1600" height="900" fill="url(#bg)"/>
+  <ellipse cx="800" cy="770" rx="520" ry="60" fill="#16261F" opacity="0.6"/>
+  <!-- 禮盒 -->
+  <rect x="480" y="420" width="640" height="320" rx="10" fill="#24413A"/>
+  <rect x="450" y="360" width="700" height="110" rx="12" fill="url(#lid)"/>
+  <rect x="770" y="360" width="60" height="380" fill="#D9C08B"/>
+  <rect x="770" y="360" width="60" height="110" fill="#E7D3A5"/>
+  <circle cx="800" cy="415" r="34" fill="none" stroke="#F4EFE6" stroke-width="3"/>
+  <text x="800" y="428" text-anchor="middle" font-family="serif" font-size="36" fill="#F4EFE6">森</text>
+  <!-- 茶杯與蒸氣 -->
+  <ellipse cx="1220" cy="700" rx="90" ry="20" fill="#16261F" opacity="0.5"/>
+  <path d="M1150 610 h140 a12 12 0 0 1 12 12 c0 55 -36 88 -82 88 s-82 -33 -82 -88 a12 12 0 0 1 12 -12 z" fill="#F4EFE6"/>
+  <path d="M1302 630 c30 4 40 46 4 58" fill="none" stroke="#F4EFE6" stroke-width="10" stroke-linecap="round"/>
+  <path d="M1200 520 c-14 -24 14 -36 2 -60 M1240 530 c-14 -24 14 -36 2 -60" fill="none" stroke="#9DB4A6" stroke-width="8" stroke-linecap="round" opacity="0.8"/>
+  <!-- 茶葉 -->
+  <path d="M340 690 q60 -90 150 -60 q-30 90 -150 60 z" fill="#5E8266"/>
+  <path d="M300 740 q40 -60 110 -46 q-18 66 -110 46 z" fill="#4A6B55"/>
+  <text x="60" y="850" font-family="serif" font-size="30" fill="#9DB4A6">示意素材｜森日茶研 冷泡烏龍茶禮盒</text>
+</svg>

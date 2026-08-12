@@ -1,0 +1,21 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1600 900">
+  <defs>
+    <linearGradient id="sky" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#E9E4D4"/>
+      <stop offset="1" stop-color="#C9CDB9"/>
+    </linearGradient>
+  </defs>
+  <rect width="1600" height="900" fill="url(#sky)"/>
+  <!-- 山嵐茶園 -->
+  <path d="M0 620 Q300 480 620 570 T1600 540 V900 H0 Z" fill="#7C9480" opacity="0.85"/>
+  <path d="M0 700 Q400 580 820 660 T1600 640 V900 H0 Z" fill="#5E8266" opacity="0.9"/>
+  <path d="M0 790 Q500 690 980 760 T1600 740 V900 H0 Z" fill="#35544A"/>
+  <!-- 霧 -->
+  <ellipse cx="420" cy="600" rx="360" ry="46" fill="#F4EFE6" opacity="0.5"/>
+  <ellipse cx="1150" cy="560" rx="420" ry="52" fill="#F4EFE6" opacity="0.4"/>
+  <!-- 前景茶葉 -->
+  <path d="M1180 260 q140 -150 320 -110 q-60 190 -320 110 z" fill="#4A6B55"/>
+  <path d="M1230 300 q40 -50 110 -40" fill="none" stroke="#35544A" stroke-width="6" stroke-linecap="round"/>
+  <path d="M180 200 q110 -120 260 -90 q-46 156 -260 90 z" fill="#5E8266"/>
+  <text x="60" y="850" font-family="serif" font-size="30" fill="#F4EFE6">示意素材｜台灣高山茶園</text>
+</svg>

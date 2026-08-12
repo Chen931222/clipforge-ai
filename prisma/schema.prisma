@@ -1,0 +1,150 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id           String    @id @default(cuid())
+  email        String    @unique
+  name         String
+  passwordHash String
+  isDemo       Boolean   @default(false)
+  createdAt    DateTime  @default(now()) @map("created_at")
+  sessions     Session[]
+  brands       Brand[]
+  projects     Project[]
+
+  @@map("users")
+}
+
+model Session {
+  id        String   @id
+  userId    String   @map("user_id")
+  expiresAt DateTime @map("expires_at")
+  createdAt DateTime @default(now()) @map("created_at")
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("sessions")
+}
+
+model Brand {
+  id             String    @id @default(cuid())
+  userId         String    @map("user_id")
+  name           String
+  industry       String    @default("")
+  description    String    @default("")
+  audience       String    @default("")
+  tone           String    @default("")
+  defaultCta     String    @default("") @map("default_cta")
+  primaryColor   String    @default("#1C1A15") @map("primary_color")
+  secondaryColor String    @default("#F7F5F0") @map("secondary_color")
+  textColor      String    @default("#FFFFFF") @map("text_color")
+  logoUrl        String?   @map("logo_url")
+  websiteUrl     String?   @map("website_url")
+  createdAt      DateTime  @default(now()) @map("created_at")
+  updatedAt      DateTime  @updatedAt @map("updated_at")
+  user           User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  projects       Project[]
+
+  @@index([userId])
+  @@map("brands")
+}
+
+model Project {
+  id                 String   @id @default(cuid())
+  userId             String   @map("user_id")
+  brandId            String   @map("brand_id")
+  name               String
+  productName        String   @map("product_name")
+  productDescription String   @map("product_description")
+  objective          String
+  audience           String   @default("")
+  sellingPointsJson  String   @default("[]") @map("selling_points_json")
+  cta                String   @default("")
+  language           String   @default("zh-TW")
+  style              String   @default("warm")
+  masterDuration     Int      @default(90) @map("master_duration")
+  shortVideoCount    Int      @default(3) @map("short_video_count")
+  status             String   @default("draft")
+  strategyJson       String?  @map("strategy_json")
+  createdAt          DateTime @default(now()) @map("created_at")
+  updatedAt          DateTime @updatedAt @map("updated_at")
+  user               User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  brand              Brand    @relation(fields: [brandId], references: [id], onDelete: Cascade)
+  assets             Asset[]
+  videos             Video[]
+
+  @@index([userId])
+  @@index([brandId])
+  @@map("projects")
+}
+
+model Asset {
+  id           String   @id @default(cuid())
+  projectId    String   @map("project_id")
+  type         String
+  fileName     String   @map("file_name")
+  originalName String   @map("original_name")
+  mimeType     String   @map("mime_type")
+  storageUrl   String   @map("storage_url")
+  metadataJson String   @default("{}") @map("metadata_json")
+  createdAt    DateTime @default(now()) @map("created_at")
+  project      Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  @@index([projectId])
+  @@map("assets")
+}
+
+model Video {
+  id             String      @id @default(cuid())
+  projectId      String      @map("project_id")
+  type           String // "master" | "short"
+  title          String
+  aspectRatio    String      @map("aspect_ratio") // "16:9" | "9:16"
+  duration       Int
+  scenesJson     String      @default("[]") @map("scenes_json")
+  socialCopyJson String      @default("{}") @map("social_copy_json")
+  subtitleStyle  String      @default("classic") @map("subtitle_style")
+  status         String      @default("draft")
+  createdAt      DateTime    @default(now()) @map("created_at")
+  updatedAt      DateTime    @updatedAt @map("updated_at")
+  project        Project     @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  renderJobs     RenderJob[]
+
+  @@index([projectId])
+  @@map("videos")
+}
+
+/// 匿名匯出行為事件：只記種類與專案，不記使用者（付費訊號分析用）。
+model ExportEvent {
+  id        String   @id @default(cuid())
+  kind      String // mp4 | srt | script | json | copy
+  projectId String?  @map("project_id")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@index([kind])
+  @@index([projectId])
+  @@map("export_events")
+}
+
+model RenderJob {
+  id           String    @id @default(cuid())
+  videoId      String    @map("video_id")
+  status       String    @default("queued") // queued | processing | completed | failed
+  progress     Int       @default(0)
+  outputUrl    String?   @map("output_url")
+  errorMessage String?   @map("error_message")
+  startedAt    DateTime? @map("started_at")
+  completedAt  DateTime? @map("completed_at")
+  createdAt    DateTime  @default(now()) @map("created_at")
+  video        Video     @relation(fields: [videoId], references: [id], onDelete: Cascade)
+
+  @@index([videoId])
+  @@index([status])
+  @@map("render_jobs")
+}
