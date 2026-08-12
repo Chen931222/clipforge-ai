@@ -6,6 +6,18 @@
 - 渲染使用 [Remotion](https://remotion.dev)，輸出真正可播放的 MP4（16:9 主影片＋9:16 短影音）
 - 編輯器預覽（Remotion Player）與最終渲染使用同一份合成元件，所見即所渲
 
+## 畫面與成品
+
+| | |
+|---|---|
+| ![首頁](docs/screenshots/1-landing.png)<br><sub>首頁——一份素材進，整月內容出</sub> | ![場景編輯器](docs/screenshots/2-editor.png)<br><sub>場景編輯器——cue sheet＋Remotion 即時預覽，16:9↔9:16 切換</sub> |
+| ![渲染與匯出](docs/screenshots/3-renders.png)<br><sub>渲染與匯出——MP4／SRT 字幕／Markdown 腳本／專案 JSON</sub> | ![內容策略](docs/screenshots/4-strategy.png)<br><sub>內容策略——痛點、四平台社群文案、縮圖標題</sub> |
+
+實際渲染成品（點進去即可播放）：
+
+- [90 秒主影片・16:9・真語音 TTS](docs/samples/master-90s-coffee-real-tts.mp4)
+- [20 秒直式短影音・9:16](docs/samples/short-20s-tea-vertical.mp4)
+
 ## 技術棧
 
 Next.js 15（App Router）・TypeScript strict・Tailwind CSS v4・Prisma 6 + SQLite・Remotion 4・Zod・Vitest・Playwright
