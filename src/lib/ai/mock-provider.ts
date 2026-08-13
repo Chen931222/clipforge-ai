@@ -40,7 +40,65 @@ const OBJECTIVE_ANGLES: Record<string, string> = {
   education: "把知識講明白，讓信任自然發生",
 };
 
-function clampNarration(text: string, durationSec: number): string {
+/** 使用者輸入放在英文句首時要大寫。 */
+function enCapitalize(text: string): string {
+  return `${text.charAt(0).toUpperCase()}${text.slice(1)}`;
+}
+
+/** 英文輸入嵌進句子中間時，先去掉尾端標點，避免出現句中句號。 */
+function enFragment(text: string): string {
+  return text.trim().replace(/[\s.,;:!?–—-]+$/, "");
+}
+
+/** 英文句尾補標點；已經有結束標點就不重複加。 */
+function enSentence(text: string): string {
+  const body = text.trim().replace(/[\s,;:–—-]+$/, "");
+  if (!body) return body;
+  // 收尾的引號、括號本身不算結束標點，要看它前面那個字元
+  const tail = body.replace(/["')\]]+$/, "");
+  return /[.!?]$/.test(tail) ? body : `${body}.`;
+}
+
+/** 裁切後若剛好停在冠詞、介系詞、代名詞上，再往回退一個字，句子才收得乾淨。 */
+const EN_DANGLING_WORD =
+  /\s+(a|an|the|and|or|but|of|to|in|on|at|for|with|from|by|so|as|than|that|is|are|was|were|be|been|it|its|we|you|your|our|they|their|this|these|those)$/i;
+
+/** 回傳最後一個「標點＋空白」的標點索引；找不到回 -1。用來把英文切在句子或子句邊界。 */
+function lastBoundaryIndex(text: string, marks: string): number {
+  let last = -1;
+  for (let i = 0; i < text.length - 1; i++) {
+    if (marks.includes(text[i]) && /\s/.test(text[i + 1])) last = i;
+  }
+  return last;
+}
+
+/** 英文裁切：優先切在句子／子句邊界，再退到單字邊界，絕不把單字切一半。 */
+function clampWordsEn(text: string, maxChars: number): string {
+  const source = text.trim();
+  if (source.length <= maxChars) return source;
+  const floor = Math.floor(maxChars * 0.4);
+  // 多取一個字元，讓剛好卡在預算上的完整單字也能保留
+  const head = source.slice(0, maxChars + 1);
+  // 切在句子邊界最理想；句號後面要接空白才算，才不會切在 "2.5" 的小數點上
+  const sentence = lastBoundaryIndex(head, ".!?");
+  if (sentence >= floor) return head.slice(0, sentence + 1);
+  // 其次切在子句邊界，讀起來仍收得成一句話
+  const clause = lastBoundaryIndex(head, ",;:");
+  const space = head.lastIndexOf(" ");
+  const cut = clause >= floor ? clause : space >= floor ? space : maxChars;
+  let body = head.slice(0, cut).replace(/[\s,;:.–—-]+$/, "");
+  while (body.length > floor && EN_DANGLING_WORD.test(body)) {
+    body = body.replace(EN_DANGLING_WORD, "");
+  }
+  return body;
+}
+
+function clampNarration(text: string, durationSec: number, en = false): string {
+  if (en) {
+    // 英文口語約每秒 2.3 個單字，單字平均 5.5 字元再加一個空格。
+    const budget = Math.max(24, Math.round(durationSec * 2.3 * 6.5));
+    return enCapitalize(enSentence(clampWordsEn(text, budget)));
+  }
   // 中文口語約每秒 4 字。
   const maxChars = Math.max(10, Math.floor(durationSec * 4));
   if (text.length <= maxChars) return text;
@@ -110,7 +168,7 @@ function buildMasterScenes(input: StrategyInput): Scene[] {
       id: sceneId(),
       durationSec: timing.hook,
       narration: en
-        ? `Meet ${project.productName} — by ${brand.name}.`
+        ? clampNarration(`Meet ${project.productName} — by ${brand.name}.`, timing.hook, true)
         : clampNarration(`${tone.hookPrefix}${project.productName}。`, timing.hook),
       title: project.productName,
       subtitle: brand.name,
@@ -129,7 +187,11 @@ function buildMasterScenes(input: StrategyInput): Scene[] {
       id: sceneId(),
       durationSec: timing.problem,
       narration: en
-        ? `For ${audience || "busy teams"}, finding the right choice takes too much time. It shouldn't.`
+        ? clampNarration(
+            `For ${audience || "busy teams"}, finding the right choice takes too much time. It shouldn't.`,
+            timing.problem,
+            true,
+          )
         : clampNarration(
             audience
               ? `${audience}的日常裡，想找到一個真正合適的選擇，往往比想像中費力。`
@@ -157,7 +219,7 @@ function buildMasterScenes(input: StrategyInput): Scene[] {
         durationSec: timing.values[i],
         narration: point
           ? en
-            ? `${point}.`
+            ? clampNarration(point, timing.values[i], true)
             : clampNarration(
                 `${point}${[
                   `——這是${project.productName}最被在意的理由。`,
@@ -167,7 +229,11 @@ function buildMasterScenes(input: StrategyInput): Scene[] {
                 timing.values[i],
               )
           : en
-            ? `A key benefit of ${project.productName}. (Please confirm the actual selling point.)`
+            ? clampNarration(
+                `One of the reasons to choose ${project.productName}. Add the real selling point here.`,
+                timing.values[i],
+                true,
+              )
             : clampNarration(`${project.productName}的核心價值之一，待你補上具體說明。`, timing.values[i]),
         title: point ?? (en ? `Benefit ${i + 1}` : `賣點 ${i + 1}（待確認）`),
         subtitle: en ? `0${i + 1}` : `第 ${i + 1} 點`,
@@ -184,7 +250,7 @@ function buildMasterScenes(input: StrategyInput): Scene[] {
   // 4) 案例／使用場景（不捏造數據與證言，用中性場景描述）
   const proofNarrations = en
     ? [
-        `Where it fits: ${project.productDescription || project.productName}.`,
+        `Where it fits: ${project.productDescription || project.productName}`,
         `Designed for real, everyday use.`,
       ]
     : [
@@ -201,9 +267,9 @@ function buildMasterScenes(input: StrategyInput): Scene[] {
       sceneSchema.parse({
         id: sceneId(),
         durationSec: d,
-        narration: clampNarration(proofNarrations[i] ?? proofNarrations[0], d),
+        narration: clampNarration(proofNarrations[i] ?? proofNarrations[0], d, en),
         title: en ? "In real life" : "真實使用場景",
-        subtitle: thin && !en ? "（建議補充實際案例）" : "",
+        subtitle: thin ? (en ? "(Add a real example)" : "（建議補充實際案例）") : "",
         assetId: pickAsset(assets, assetCursor++),
         assetMode: "cover",
         animation: "fade",
@@ -221,7 +287,11 @@ function buildMasterScenes(input: StrategyInput): Scene[] {
       id: sceneId(),
       durationSec: timing.cta,
       narration: en
-        ? `${cta || `Learn more about ${project.productName}`}. ${brand.name}.`
+        ? clampNarration(
+            `${enSentence(cta || `Learn more about ${project.productName}`)} ${brand.name}`,
+            timing.cta,
+            true,
+          )
         : clampNarration(`${tone.closing}${cta ? `${cta}。` : ""}`, timing.cta),
       title: cta || (en ? "Learn more" : `${tone.ctaVerb}更多`),
       subtitle: brand.name,
@@ -245,6 +315,11 @@ const SHORT_ANGLES = [
       `只講一件事：${input.project.sellingPoints[0] ?? input.project.productName}。`,
     body: (input: StrategyInput) =>
       `${input.project.productName}把這件事做到位——${(input.project.sellingPoints[0] ?? "核心價值")}，不是口號，是日常用得到的差別。`,
+    enTitle: (p: string) => `${p} in 30 seconds`,
+    enHook: (input: StrategyInput) =>
+      enSentence(`Just one thing: ${input.project.sellingPoints[0] ?? input.project.productName}`),
+    enBody: (input: StrategyInput) =>
+      `${input.project.productName} does one thing well: ${enSentence(input.project.sellingPoints[0] ?? "the core benefit")} Not a slogan, a difference you notice in daily use.`,
   },
   {
     key: "pain",
@@ -253,6 +328,12 @@ const SHORT_ANGLES = [
       `${input.project.audience || input.brand.audience || "你"}最常遇到的困擾，其實有解。`,
     body: (input: StrategyInput) =>
       `與其繼續將就，不如看看${input.project.productName}怎麼把${(input.project.sellingPoints[1] ?? input.project.sellingPoints[0] ?? "這件事")}變簡單。`,
+    enTitle: (p: string) => `Still settling for less? ${p}`,
+    enHook: (input: StrategyInput) =>
+      `The thing ${input.project.audience || input.brand.audience || "you"} run into most has a fix.`,
+    enBody: (input: StrategyInput) =>
+      // 賣點是使用者填的片語，接在冒號後面才不會被硬塞進句子中間變成病句
+      `Instead of settling, see what ${input.project.productName} does differently: ${enSentence(input.project.sellingPoints[1] ?? input.project.sellingPoints[0] ?? "the part that matters most")}`,
   },
   {
     key: "scene",
@@ -260,6 +341,14 @@ const SHORT_ANGLES = [
     hook: (input: StrategyInput) => `想像一下：${input.project.productName}出現在你的一天。`,
     body: (input: StrategyInput) =>
       `${input.project.productDescription ? input.project.productDescription.slice(0, 60) : `從早到晚，${input.project.productName}都派得上用場`}。`,
+    enTitle: (p: string) => `${p} in your day`,
+    enHook: (input: StrategyInput) => `Picture it: ${input.project.productName} in your day.`,
+    enBody: (input: StrategyInput) =>
+      enSentence(
+        input.project.productDescription
+          ? clampWordsEn(input.project.productDescription, 120)
+          : `From morning to night, ${input.project.productName} earns its place`,
+      ),
   },
   {
     key: "gift",
@@ -267,6 +356,11 @@ const SHORT_ANGLES = [
     hook: (input: StrategyInput) => `挑禮物很難？${input.project.productName}是安全牌裡的驚喜。`,
     body: (input: StrategyInput) =>
       `${(input.project.sellingPoints[2] ?? input.project.sellingPoints[0] ?? "質感與心意")}，收到的人會記得。`,
+    enTitle: (p: string) => `${p} makes an easy gift`,
+    enHook: (input: StrategyInput) =>
+      `Gifts are hard. ${input.project.productName} is the safe pick that still surprises.`,
+    enBody: (input: StrategyInput) =>
+      `${enCapitalize(enSentence(input.project.sellingPoints[2] ?? input.project.sellingPoints[0] ?? "Quality you can feel"))} That is what people remember.`,
   },
   {
     key: "qa",
@@ -274,26 +368,35 @@ const SHORT_ANGLES = [
     hook: (input: StrategyInput) => `三個問題，快速認識${input.project.productName}。`,
     body: (input: StrategyInput) =>
       `是什麼？${input.project.productName}。特別在哪？${(input.project.sellingPoints[0] ?? "待補充")}。適合誰？${input.project.audience || input.brand.audience || "在找它的你"}。`,
+    enTitle: (p: string) => `Three questions about ${p}`,
+    enHook: (input: StrategyInput) =>
+      `Three questions, and you will know ${input.project.productName}.`,
+    enBody: (input: StrategyInput) =>
+      `What is it? ${enSentence(input.project.productName)} What stands out? ${enCapitalize(enSentence(input.project.sellingPoints[0] ?? "To be confirmed"))} Who is it for? ${enCapitalize(enSentence(input.project.audience || input.brand.audience || "Anyone still looking"))}`,
   },
 ];
 
 function buildShorts(input: StrategyInput): ShortScript[] {
   const { brand, project, assets } = input;
   const count = Math.min(5, Math.max(3, project.shortVideoCount));
-  const cta = project.cta || brand.defaultCta || `認識 ${project.productName}`;
   const en = project.language === "en";
+  const cta =
+    project.cta ||
+    brand.defaultCta ||
+    (en
+      ? clampWordsEn(`Learn more about ${project.productName}`, 60)
+      : `認識 ${project.productName}`);
 
   return SHORT_ANGLES.slice(0, count).map((angle, i) => {
     const durationSec = 20;
-    const hook = en ? `${project.productName}: one thing you should know.` : angle.hook(input);
-    const body = en
-      ? `${project.sellingPoints[i % Math.max(1, project.sellingPoints.length)] ?? project.productDescription ?? project.productName}.`
-      : angle.body(input);
+    // 英文句型比中文長，產品名或受眾一長就會撞到 schema 上限，先照欄位長度收乾淨
+    const hook = en ? enSentence(clampWordsEn(angle.enHook(input), 119)) : angle.hook(input);
+    const body = en ? enSentence(clampWordsEn(angle.enBody(input), 299)) : angle.body(input);
     const scenes: Scene[] = [
       sceneSchema.parse({
         id: sceneId(),
         durationSec: 5,
-        narration: clampNarration(hook, 5),
+        narration: clampNarration(hook, 5, en),
         title: project.productName,
         subtitle: brand.name,
         assetId: pickAsset(assets, i),
@@ -305,7 +408,7 @@ function buildShorts(input: StrategyInput): ShortScript[] {
       sceneSchema.parse({
         id: sceneId(),
         durationSec: 10,
-        narration: clampNarration(body, 10),
+        narration: clampNarration(body, 10, en),
         title: en ? "Why it matters" : "為什麼值得",
         subtitle: "",
         assetId: pickAsset(assets, i + 1),
@@ -317,7 +420,7 @@ function buildShorts(input: StrategyInput): ShortScript[] {
       sceneSchema.parse({
         id: sceneId(),
         durationSec: 5,
-        narration: clampNarration(en ? `${cta}.` : `${cta}。`, 5),
+        narration: clampNarration(en ? cta : `${cta}。`, 5, en),
         title: cta,
         subtitle: brand.name,
         assetId: null,
@@ -328,7 +431,9 @@ function buildShorts(input: StrategyInput): ShortScript[] {
       }),
     ];
     return {
-      title: en ? `${project.productName} · Short ${i + 1}` : angle.title(project.productName),
+      title: en
+        ? clampWordsEn(angle.enTitle(project.productName), 60)
+        : angle.title(project.productName),
       hook,
       body,
       cta,
@@ -338,8 +443,75 @@ function buildShorts(input: StrategyInput): ShortScript[] {
   });
 }
 
+/** 英文 hashtag：把品牌／產品／賣點本身轉成駝峰標籤，不套固定清單。 */
+function enHashtag(text: string): string {
+  return text
+    .replace(/[^\p{L}\p{N}]+/gu, " ")
+    .trim()
+    .split(" ")
+    .filter(Boolean)
+    .map((w) => `${w.charAt(0).toUpperCase()}${w.slice(1)}`)
+    .join("");
+}
+
+/** 產品資訊太少、湊不滿 schema 要求的 3 個 hashtag 時，用專案目標補位。 */
+const EN_OBJECTIVE_TAGS: Record<string, string> = {
+  expo: "TradeShow",
+  promotion: "NewRelease",
+  branding: "BrandStory",
+  conversion: "ShopNow",
+  education: "HowItWorks",
+};
+
+function buildSocialCopyEn(input: SocialCopyInput): SocialCopy {
+  const { brand, project, masterTitle } = input;
+  const points = project.sellingPoints.filter((p) => p.trim());
+  const cta = project.cta || brand.defaultCta;
+  const description = project.productDescription || project.productName;
+  const hashtags = Array.from(
+    new Set(
+      [
+        brand.name,
+        project.productName,
+        brand.industry,
+        ...points.slice(0, 3),
+        project.audience || brand.audience,
+      ]
+        .map(enHashtag)
+        .filter(Boolean),
+    ),
+  ).slice(0, 8);
+  for (const fallback of [
+    EN_OBJECTIVE_TAGS[project.objective] ?? "NewRelease",
+    "ProductVideo",
+    "HowItWorks",
+  ]) {
+    if (hashtags.length >= 3) break;
+    if (!hashtags.includes(fallback)) hashtags.push(fallback);
+  }
+  const pointLines = points.map((p) => `- ${enCapitalize(enFragment(p))}`).join("\n");
+  const leadPoints = points.slice(0, 2).map((p) => enCapitalize(enSentence(p))).join(" ");
+  const ctaLine = cta ? enCapitalize(enSentence(cta)) : "";
+
+  return socialCopySchema.parse({
+    youtubeTitle: masterTitle,
+    youtubeDescription: `${enCapitalize(enSentence(description))}\n\n${pointLines}\n\n${ctaLine}\n\n${brand.name}`.trim(),
+    instagram: `${masterTitle}\n\n${leadPoints}\n${ctaLine ? `${ctaLine} Link in bio.` : ""}\n\n${hashtags.map((h) => `#${h}`).join(" ")}`.trim(),
+    facebook: `${masterTitle}\n\n${enCapitalize(enSentence(description))}\n\n${pointLines}\n\n${ctaLine}`.trim(),
+    tiktok: `${enCapitalize(enSentence(points[0] ?? masterTitle))} ${points[1] ? enCapitalize(enSentence(points[1])) : "Here is the short version."} ${hashtags.slice(0, 4).map((h) => `#${h}`).join(" ")}`,
+    hashtags,
+    // 縮圖標題以 schema 上限 30 字元為單字預算，不沿用中文的 12 字預算
+    thumbnailTitles: [
+      enCapitalize(clampWordsEn(project.productName, 30)),
+      points[0] ? enCapitalize(clampWordsEn(points[0], 30)) : clampWordsEn(`Why ${brand.name}`, 30),
+      cta ? enCapitalize(clampWordsEn(cta, 30)) : "Learn more",
+    ],
+  });
+}
+
 function buildSocialCopy(input: SocialCopyInput): SocialCopy {
   const { brand, project, masterTitle } = input;
+  if (project.language === "en") return buildSocialCopyEn(input);
   const points = project.sellingPoints.filter((p) => p.trim());
   const cta = project.cta || brand.defaultCta;
   const tagBase = [
@@ -370,6 +542,13 @@ function buildSocialCopy(input: SocialCopyInput): SocialCopy {
 }
 
 const SENSITIVE_INDUSTRY = /(醫療|醫美|診所|藥|保健|金融|投資|理財|貸款|保險|法律|律師)/;
+/** 英文專案同樣要觸發合規提醒；比對字根並忽略大小寫。 */
+const SENSITIVE_INDUSTRY_EN =
+  /\b(medical|medicine|clinic|clinical|dental|dentist|doctor|patient|therapy|therapeutic|treatment|diagnos\w*|pharma\w*|drug|drugs|supplement|supplements|wellness|healthcare|financial|finance|investment|investing|investor|investors|trading|loan|loans|lending|mortgage|insurance|banking|crypto\w*|legal|lawyer|attorney|law firm|tax)\b/i;
+
+function isSensitiveText(text: string): boolean {
+  return SENSITIVE_INDUSTRY.test(text) || SENSITIVE_INDUSTRY_EN.test(text);
+}
 
 export class MockContentAIProvider implements ContentAIProvider {
   readonly name = "mock";
@@ -385,32 +564,65 @@ export class MockContentAIProvider implements ContentAIProvider {
     const en = project.language === "en";
     const points = project.sellingPoints.filter((p) => p.trim());
     const needsConfirmation: string[] = [];
-    if (points.length === 0) needsConfirmation.push("尚未提供主要賣點，賣點場景為佔位內容");
+    if (points.length === 0)
+      needsConfirmation.push(
+        en
+          ? "No selling points yet, so the benefit scenes are placeholders"
+          : "尚未提供主要賣點，賣點場景為佔位內容",
+      );
     if (project.productDescription.trim().length < 20)
-      needsConfirmation.push("產品介紹偏短，案例場景使用中性描述，建議補充實際案例");
-    if (!(project.cta || brand.defaultCta)) needsConfirmation.push("尚未設定 CTA");
-    if (!(project.audience || brand.audience)) needsConfirmation.push("尚未設定目標受眾");
+      needsConfirmation.push(
+        en
+          ? "Product description is short, so the use-case scene stays generic. Add a real example"
+          : "產品介紹偏短，案例場景使用中性描述，建議補充實際案例",
+      );
+    if (!(project.cta || brand.defaultCta))
+      needsConfirmation.push(en ? "No CTA set" : "尚未設定 CTA");
+    if (!(project.audience || brand.audience))
+      needsConfirmation.push(en ? "No target audience set" : "尚未設定目標受眾");
 
     const sensitive =
-      SENSITIVE_INDUSTRY.test(brand.industry) ||
-      SENSITIVE_INDUSTRY.test(project.productDescription);
+      isSensitiveText(brand.industry) || isSensitiveText(project.productDescription);
 
+    // 品牌名塞不進 80 字上限時整段拿掉，切一半的品牌名比沒有品牌名更難看
+    const enMasterTitle = `${project.productName} — ${brand.name}`;
     const masterTitle = en
-      ? `${project.productName} — ${brand.name}`
+      ? enMasterTitle.length <= 80
+        ? enMasterTitle
+        : clampWordsEn(project.productName, 80)
       : `${project.productName}｜${OBJECTIVE_ANGLES[project.objective] ?? "品牌介紹"}`;
 
     const strategy: ContentStrategy = {
       strategyOneLiner: en
-        ? `Make ${project.productName} the obvious choice for ${project.audience || "its audience"} in under ${project.masterDuration} seconds.`
+        ? enSentence(
+            clampWordsEn(
+              `Make ${project.productName} the obvious choice for ${project.audience || "its audience"} in under ${project.masterDuration} seconds.`,
+              119,
+            ),
+          )
         : `用 ${project.masterDuration} 秒，讓${project.audience || brand.audience || "目標受眾"}記住${project.productName}最值得選的理由。`,
       painPoints:
         (project.audience || brand.audience)
-          ? [
-              `${project.audience || brand.audience}沒時間慢慢研究，需要一眼看懂的理由`,
-              "選擇太多、資訊太雜，難以判斷哪個真正適合",
-            ]
-          : ["受眾輪廓待確認，先以通用痛點推進"],
-      coreMessages: points.length > 0 ? points.slice(0, 3) : [`${project.productName}的核心價值（待補充）`],
+          ? en
+            ? [
+                `${project.audience || brand.audience} will not spend long researching, so the reason to choose has to land at a glance`,
+                "With too many options and too much noise, it is hard to tell what actually fits",
+              ]
+            : [
+                `${project.audience || brand.audience}沒時間慢慢研究，需要一眼看懂的理由`,
+                "選擇太多、資訊太雜，難以判斷哪個真正適合",
+              ]
+          : en
+            ? ["Audience is not defined yet, so these pain points stay generic"]
+            : ["受眾輪廓待確認，先以通用痛點推進"],
+      coreMessages:
+        points.length > 0
+          ? points.slice(0, 3)
+          : [
+              en
+                ? `Core value of ${project.productName} (to be confirmed)`
+                : `${project.productName}的核心價值（待補充）`,
+            ],
       master: {
         title: masterTitle,
         scenes: buildMasterScenes(input),
@@ -418,7 +630,9 @@ export class MockContentAIProvider implements ContentAIProvider {
       shorts: buildShorts(input),
       socialCopy: buildSocialCopy({ brand, project, masterTitle }),
       complianceNote: sensitive
-        ? "此內容可能涉及醫療／金融／法律等受規範領域，發布前請務必經人工與法遵審核。"
+        ? en
+          ? "This content may touch a regulated area (medical, financial, or legal). Have a person review it for compliance before you publish."
+          : "此內容可能涉及醫療／金融／法律等受規範領域，發布前請務必經人工與法遵審核。"
         : null,
       needsConfirmation,
     };
@@ -428,16 +642,26 @@ export class MockContentAIProvider implements ContentAIProvider {
   async regenerateScene(input: RegenerateSceneInput): Promise<Scene> {
     await this.simulateLatency();
     const { scene, project, brand } = input;
-    const variants = [
-      (t: string) => `換個說法：${t}`,
-      (t: string) => `${t}——這一點，${project.audience || brand.audience || "很多人"}最有感。`,
-      (t: string) => `直接說重點。${t}`,
-    ];
-    const base = scene.narration.replace(/^換個說法：|^直接說重點。/, "");
+    const en = project.language === "en";
+    const variants = en
+      ? [
+          (t: string) => `Another way to put it: ${t}`,
+          (t: string) =>
+            `${enSentence(t)} That is the part ${project.audience || brand.audience || "most people"} notice first.`,
+          (t: string) => `Straight to the point. ${t}`,
+        ]
+      : [
+          (t: string) => `換個說法：${t}`,
+          (t: string) => `${t}——這一點，${project.audience || brand.audience || "很多人"}最有感。`,
+          (t: string) => `直接說重點。${t}`,
+        ];
+    const base = en
+      ? scene.narration.replace(/^Another way to put it: |^Straight to the point\. /, "")
+      : scene.narration.replace(/^換個說法：|^直接說重點。/, "");
     const pick = variants[(base.length + input.sceneIndex) % variants.length];
     return sceneSchema.parse({
       ...scene,
-      narration: clampNarration(pick(base), scene.durationSec),
+      narration: clampNarration(pick(base), scene.durationSec, en),
     });
   }
 

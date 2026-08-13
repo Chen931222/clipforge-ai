@@ -59,6 +59,7 @@ Demo 帳號：`demo@clipforge.local` / `Demo1234!`（`/demo` 會自動登入）�
 | 變數 | 預設 | 說明 |
 |---|---|---|
 | `DATABASE_URL` | `file:./dev.db` | SQLite；換 PostgreSQL 時改連線字串與 schema provider |
+| `NEXT_PUBLIC_LOCALE` | 空（＝`zh-TW`） | 設 `en` 讓介面改用英文（首頁、場景編輯器、渲染與匯出、Markdown 匯出）。build 時決定，改完要重啟；**跑 e2e 前要清空**，測試斷言的是中文 |
 | `AI_PROVIDER` | `mock` | `mock`／`anthropic`；設 anthropic 需同時給 `ANTHROPIC_API_KEY`，缺金鑰自動退回 mock |
 | `ANTHROPIC_MODEL` | `claude-sonnet-5` | 只在 anthropic 模式使用 |
 | `TTS_PROVIDER` | `mock` | `mock`＝節奏對位合成音軌；`edge`＝Microsoft Edge 朗讀端點，**真中文語音、免金鑰**（非官方端點，僅限開發／展示；失敗自動退回 mock；正式上線請實作付費供應商到同一 `TTSProvider` 介面） |
@@ -73,7 +74,7 @@ Demo 帳號：`demo@clipforge.local` / `Demo1234!`（`/demo` 會自動登入）�
 | `pnpm worker` | 渲染 worker（輪詢 render_jobs，Remotion → MP4） |
 | `pnpm setup` | generate + migrate + seed（可重複執行） |
 | `pnpm db:reset` | 刪 DB 重建＋seed |
-| `pnpm test` | Vitest 單元測試（31 個） |
+| `pnpm test` | Vitest 單元測試（41 個） |
 | `pnpm test:e2e` | build＋獨立 e2e.db＋Playwright（**先停掉 dev server**，`next build` 與 `next dev` 共用 `.next`） |
 | `pnpm lint` / `pnpm typecheck` | ESLint / tsc |
 | `pnpm verify` | lint + typecheck + test + build |

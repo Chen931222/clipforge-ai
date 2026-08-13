@@ -6,6 +6,7 @@ import type {
   SelectHTMLAttributes,
   TextareaHTMLAttributes,
 } from "react";
+import { pick } from "@/lib/i18n";
 
 /** 共用元件（DESIGN.md 元件基調） */
 
@@ -77,15 +78,15 @@ export function Select(props: SelectHTMLAttributes<HTMLSelectElement>) {
 /** 狀態章：印刷膠囊（DESIGN.md） */
 export function StatusStamp({ status }: { status: string }) {
   const map: Record<string, { label: string; cls: string; rec?: boolean }> = {
-    draft: { label: "草稿", cls: "border-rule text-ink-40" },
-    scripted: { label: "已生成腳本", cls: "border-ink text-ink" },
-    edited: { label: "已編輯", cls: "border-ink text-ink" },
-    rendering: { label: "渲染中", cls: "border-rec text-rec", rec: true },
-    rendered: { label: "已輸出", cls: "border-ink text-ink" },
-    queued: { label: "排隊中", cls: "border-rule text-ink-40" },
-    processing: { label: "渲染中", cls: "border-rec text-rec", rec: true },
-    completed: { label: "已完成", cls: "border-ink text-ink" },
-    failed: { label: "失敗", cls: "border-rec bg-rec text-white" },
+    draft: { label: pick("草稿", "Draft"), cls: "border-rule text-ink-40" },
+    scripted: { label: pick("已生成腳本", "Scripted"), cls: "border-ink text-ink" },
+    edited: { label: pick("已編輯", "Edited"), cls: "border-ink text-ink" },
+    rendering: { label: pick("渲染中", "Rendering"), cls: "border-rec text-rec", rec: true },
+    rendered: { label: pick("已輸出", "Exported"), cls: "border-ink text-ink" },
+    queued: { label: pick("排隊中", "Queued"), cls: "border-rule text-ink-40" },
+    processing: { label: pick("渲染中", "Rendering"), cls: "border-rec text-rec", rec: true },
+    completed: { label: pick("已完成", "Done"), cls: "border-ink text-ink" },
+    failed: { label: pick("失敗", "Failed"), cls: "border-rec bg-rec text-white" },
   };
   const item = map[status] ?? { label: status, cls: "border-rule text-ink-40" };
   return (

@@ -2,6 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
+import { pick } from "@/lib/i18n";
 import { formatTimecode } from "@/lib/srt";
 import { Button, StatusStamp } from "./ui";
 
@@ -85,12 +86,16 @@ export function RenderCenter({
   }, [hasActive]);
 
   async function startRender(videoId: string, isRerender: boolean) {
-    if (isRerender && !confirm("重新渲染會產生新的輸出檔（舊檔保留）。繼續嗎？")) return;
+    const rerenderConfirm = pick(
+      "重新渲染會產生新的輸出檔（舊檔保留）。繼續嗎？",
+      "Re-rendering creates a new output file. The old one is kept. Continue?",
+    );
+    if (isRerender && !confirm(rerenderConfirm)) return;
     setError(null);
     const res = await fetch(`/api/videos/${videoId}/render`, { method: "POST" });
     if (!res.ok) {
       const data = await res.json().catch(() => null);
-      setError(data?.error?.message ?? "建立渲染工作失敗");
+      setError(data?.error?.message ?? pick("建立渲染工作失敗", "Could not start the render job"));
       return;
     }
     const { data } = await res.json();
@@ -121,10 +126,10 @@ export function RenderCenter({
           <thead>
             <tr>
               <th>NO.</th>
-              <th>影片</th>
-              <th>規格</th>
-              <th>渲染狀態</th>
-              <th>輸出</th>
+              <th>{pick("影片", "Video")}</th>
+              <th>{pick("規格", "Format")}</th>
+              <th>{pick("渲染狀態", "Render status")}</th>
+              <th>{pick("輸出", "Output")}</th>
               <th></th>
             </tr>
           </thead>
@@ -140,7 +145,10 @@ export function RenderCenter({
                   <td>
                     <div className="text-sm font-medium">{v.title}</div>
                     <div className="font-mono text-[11px] text-ink-40">
-                      {v.type === "master" ? "主影片" : "短影音"}・{v.sceneCount} 場景
+                      {pick(
+                        `${v.type === "master" ? "主影片" : "短影音"}・${v.sceneCount} 場景`,
+                        `${v.type === "master" ? "Master" : "Short"}・${v.sceneCount} scenes`,
+                      )}
                     </div>
                   </td>
                   <td className="font-mono text-xs">
@@ -166,21 +174,23 @@ export function RenderCenter({
                         ) : null}
                       </div>
                     ) : (
-                      <span className="font-mono text-xs text-ink-40">尚未渲染</span>
+                      <span className="font-mono text-xs text-ink-40">
+                        {pick("尚未渲染", "Not rendered")}
+                      </span>
                     )}
                   </td>
                   <td>
                     <div className="flex flex-col gap-1 text-sm">
                       {job?.status === "completed" && job.outputUrl ? (
                         <a href={job.outputUrl} className="underline underline-offset-4" download>
-                          下載 MP4
+                          {pick("下載 MP4", "Download MP4")}
                         </a>
                       ) : null}
                       <a
                         href={`/api/videos/${v.id}/export/srt`}
                         className="underline underline-offset-4"
                       >
-                        SRT 字幕
+                        {pick("SRT 字幕", "SRT subtitles")}
                       </a>
                     </div>
                   </td>
@@ -193,12 +203,12 @@ export function RenderCenter({
                       {active ? (
                         <>
                           <span className="rec-dot h-2 w-2 rounded-full bg-rec" />
-                          渲染中 {job?.progress ?? 0}%
+                          {pick("渲染中", "Rendering")} {job?.progress ?? 0}%
                         </>
                       ) : job ? (
-                        "重新渲染"
+                        pick("重新渲染", "Re-render")
                       ) : (
-                        "渲染 MP4"
+                        pick("渲染 MP4", "Render MP4")
                       )}
                     </Button>
                   </td>
@@ -209,20 +219,23 @@ export function RenderCenter({
         </table>
       </div>
       <p className="font-mono text-xs text-ink-40">
-        渲染由獨立 worker 處理（pnpm worker）。worker 未啟動時，工作會停在「排隊中」。
+        {pick(
+          "渲染由獨立 worker 處理（pnpm worker）。worker 未啟動時，工作會停在「排隊中」。",
+          "Rendering runs in a separate worker (pnpm worker). Jobs stay Queued until it starts.",
+        )}
       </p>
       <div className="flex flex-wrap gap-3">
         <a
           href={`/api/projects/${projectId}/export/script`}
           className="rounded-[4px] border border-ink px-4 py-2 text-sm hover:bg-sheet"
         >
-          下載 Markdown 腳本
+          {pick("下載 Markdown 腳本", "Download Markdown script")}
         </a>
         <a
           href={`/api/projects/${projectId}/export/json`}
           className="rounded-[4px] border border-ink px-4 py-2 text-sm hover:bg-sheet"
         >
-          下載專案 JSON
+          {pick("下載專案 JSON", "Download project JSON")}
         </a>
       </div>
     </div>

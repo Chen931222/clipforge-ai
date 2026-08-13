@@ -1,6 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
+import { pick } from "@/lib/i18n";
 
 export function LogoutButton() {
   const router = useRouter();
@@ -13,7 +14,7 @@ export function LogoutButton() {
         router.refresh();
       }}
     >
-      登出
+      {pick("登出", "Log out")}
     </button>
   );
 }

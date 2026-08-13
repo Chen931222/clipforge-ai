@@ -3,6 +3,7 @@
 import { Player } from "@remotion/player";
 import { FPS, SceneComposition, totalFrames, type VideoBrand } from "../../remotion/scenes";
 import type { Scene } from "@/lib/ai/schemas";
+import { pick } from "@/lib/i18n";
 
 /**
  * 編輯器內的影片預覽：直接掛 Remotion Player 跑「渲染用的同一份元件」，
@@ -25,7 +26,7 @@ export function PreviewPlayer({
   if (scenes.length === 0) {
     return (
       <div className="flex aspect-video items-center justify-center rounded-md border border-rule bg-well text-sm text-paper/60">
-        沒有場景可預覽
+        {pick("沒有場景可預覽", "No scenes to preview")}
       </div>
     );
   }

@@ -1,10 +1,11 @@
 "use client";
 
 import { useState } from "react";
+import { pick } from "@/lib/i18n";
 
 export function CopyButton({
   text,
-  label = "複製",
+  label = pick("複製", "Copy"),
   projectId,
 }: {
   text: string;
@@ -30,7 +31,7 @@ export function CopyButton({
         }
       }}
     >
-      {copied ? "已複製 ✓" : label}
+      {copied ? pick("已複製 ✓", "Copied ✓") : label}
     </button>
   );
 }

@@ -1,4 +1,5 @@
 import type { ContentStrategy, Scene, SocialCopy } from "./ai/schemas";
+import { pick } from "./i18n";
 import { formatTimecode, totalDuration } from "./srt";
 
 interface VideoForExport {
@@ -16,14 +17,29 @@ export function projectScriptMarkdown(
   strategy: ContentStrategy | null,
   videos: VideoForExport[],
 ): string {
-  const lines: string[] = [`# ${projectName} — 影片腳本`, "", `品牌：${brandName}`, ""];
+  const lines: string[] = [
+    `# ${projectName} — ${pick("影片腳本", "Video Script")}`,
+    "",
+    `${pick("品牌：", "Brand: ")}${brandName}`,
+    "",
+  ];
   if (strategy) {
-    lines.push(`## 內容策略`, "", `> ${strategy.strategyOneLiner}`, "");
+    lines.push(pick(`## 內容策略`, `## Content Strategy`), "", `> ${strategy.strategyOneLiner}`, "");
     if (strategy.painPoints.length) {
-      lines.push(`**受眾痛點**`, "", ...strategy.painPoints.map((p) => `- ${p}`), "");
+      lines.push(
+        pick(`**受眾痛點**`, `**Audience pain points**`),
+        "",
+        ...strategy.painPoints.map((p) => `- ${p}`),
+        "",
+      );
     }
     if (strategy.coreMessages.length) {
-      lines.push(`**核心訊息**`, "", ...strategy.coreMessages.map((m) => `- ${m}`), "");
+      lines.push(
+        pick(`**核心訊息**`, `**Core messages**`),
+        "",
+        ...strategy.coreMessages.map((m) => `- ${m}`),
+        "",
+      );
     }
     if (strategy.complianceNote) {
       lines.push(`> ⚠ ${strategy.complianceNote}`, "");
@@ -32,11 +48,14 @@ export function projectScriptMarkdown(
   for (const video of videos) {
     const dur = totalDuration(video.scenes);
     lines.push(
-      `## ${video.type === "master" ? "主影片" : "短影音"}：${video.title}`,
+      pick(
+        `## ${video.type === "master" ? "主影片" : "短影音"}：${video.title}`,
+        `## ${video.type === "master" ? "Master" : "Short"}: ${video.title}`,
+      ),
       "",
-      `長度 ${dur} 秒｜比例 ${video.aspectRatio}`,
+      pick(`長度 ${dur} 秒｜比例 ${video.aspectRatio}`, `Length ${dur}s · Aspect ${video.aspectRatio}`),
       "",
-      `| # | Timecode | 秒數 | 畫面標題 | 旁白 |`,
+      pick(`| # | Timecode | 秒數 | 畫面標題 | 旁白 |`, `| # | Timecode | Sec | Title | Narration |`),
       `|---|---|---|---|---|`,
     );
     let cursor = 0;
@@ -52,7 +71,7 @@ export function projectScriptMarkdown(
   const copy = master?.socialCopy;
   if (copy && copy.youtubeTitle) {
     lines.push(
-      `## 社群文案`,
+      pick(`## 社群文案`, `## Social Copy`),
       "",
       `### YouTube`,
       "",
@@ -72,9 +91,9 @@ export function projectScriptMarkdown(
       "",
       copy.tiktok ?? "",
       "",
-      `**Hashtags**：${(copy.hashtags ?? []).map((h) => `#${h}`).join(" ")}`,
+      `${pick("**Hashtags**：", "**Hashtags**: ")}${(copy.hashtags ?? []).map((h) => `#${h}`).join(" ")}`,
       "",
-      `**縮圖標題候選**：${(copy.thumbnailTitles ?? []).join("｜")}`,
+      `${pick("**縮圖標題候選**：", "**Thumbnail titles**: ")}${(copy.thumbnailTitles ?? []).join(pick("｜", " / "))}`,
       "",
     );
   }

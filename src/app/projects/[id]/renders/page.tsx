@@ -6,9 +6,10 @@ import { CopyButton } from "@/components/copy-button";
 import { RenderCenter } from "@/components/render-center";
 import { getSessionUser } from "@/lib/auth";
 import { db } from "@/lib/db";
+import { pick } from "@/lib/i18n";
 import { parseScenes, parseSocialCopy } from "@/lib/models";
 
-export const metadata = { title: "渲染與匯出 — ClipForge AI" };
+export const metadata = { title: pick("渲染與匯出 — ClipForge AI", "Render & Export — ClipForge AI") };
 export const dynamic = "force-dynamic";
 
 export default async function RendersPage({
@@ -39,20 +40,24 @@ export default async function RendersPage({
     <AppShell>
       <PageTitle
         kicker={`${project.brand.name}・${project.name}`}
-        title="渲染與匯出"
+        title={pick("渲染與匯出", "Render & Export")}
         actions={
           <Link href={`/projects/${project.id}/editor`} className={buttonClass("secondary")}>
-            回編輯器
+            {pick("回編輯器", "Back to editor")}
           </Link>
         }
       />
       {project.videos.length === 0 ? (
         <div className="rounded-md border border-rule bg-sheet p-10 text-center">
-          <p className="font-serif text-xl font-semibold">還沒有影片可渲染</p>
-          <p className="mt-2 text-sm text-ink-60">先在專案頁生成企劃與腳本。</p>
+          <p className="font-serif text-xl font-semibold">
+            {pick("還沒有影片可渲染", "No videos to render yet")}
+          </p>
+          <p className="mt-2 text-sm text-ink-60">
+            {pick("先在專案頁生成企劃與腳本。", "Generate the plan and scripts on the project page first.")}
+          </p>
           <div className="mt-6">
             <Link href={`/projects/${project.id}`} className={buttonClass("primary")}>
-              回專案頁
+              {pick("回專案頁", "Back to project")}
             </Link>
           </div>
         </div>
@@ -81,7 +86,9 @@ export default async function RendersPage({
           />
           {socialCopy ? (
             <section className="mt-10">
-              <h2 className="mb-3 font-serif text-xl font-semibold">社群文案快速複製</h2>
+              <h2 className="mb-3 font-serif text-xl font-semibold">
+                {pick("社群文案快速複製", "Social copy")}
+              </h2>
               <div className="grid gap-4 md:grid-cols-2">
                 {(
                   [

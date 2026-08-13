@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useMemo, useState } from "react";
 import { clsx } from "clsx";
 import type { Scene } from "@/lib/ai/schemas";
+import { pick } from "@/lib/i18n";
 import { formatTimecode } from "@/lib/srt";
 import { PreviewPlayer } from "./preview-player";
 import { Button, Field, Input, SceneNo, Select, StatusStamp, Textarea } from "./ui";
@@ -35,28 +36,28 @@ export interface EditorBrand {
 }
 
 const ASSET_MODES = [
-  ["cover", "滿版"],
-  ["center", "置中"],
-  ["split", "左右分割"],
-  ["blur-bg", "背景模糊"],
+  ["cover", pick("滿版", "Cover")],
+  ["center", pick("置中", "Center")],
+  ["split", pick("左右分割", "Split")],
+  ["blur-bg", pick("背景模糊", "Blurred background")],
 ] as const;
 const ANIMATIONS = [
-  ["fade", "淡入"],
-  ["rise", "上移"],
-  ["zoom", "縮放"],
-  ["slide-left", "左滑入"],
-  ["slide-right", "右滑入"],
+  ["fade", pick("淡入", "Fade in")],
+  ["rise", pick("上移", "Rise")],
+  ["zoom", pick("縮放", "Zoom")],
+  ["slide-left", pick("左滑入", "Slide left")],
+  ["slide-right", pick("右滑入", "Slide right")],
 ] as const;
 const TRANSITIONS = [
-  ["cut", "直切"],
-  ["fade", "淡接"],
-  ["slide", "滑動"],
-  ["wipe", "擦除"],
+  ["cut", pick("直切", "Cut")],
+  ["fade", pick("淡接", "Fade")],
+  ["slide", pick("滑動", "Slide")],
+  ["wipe", pick("擦除", "Wipe")],
 ] as const;
 const SUBTITLE_STYLES = [
-  ["classic", "經典"],
-  ["bold-short", "短影音粗體"],
-  ["minimal-luxe", "高級極簡"],
+  ["classic", pick("經典", "Classic")],
+  ["bold-short", pick("短影音粗體", "Bold")],
+  ["minimal-luxe", pick("高級極簡", "Minimal")],
 ] as const;
 
 function newScene(brandColor: string): Scene {
@@ -64,7 +65,7 @@ function newScene(brandColor: string): Scene {
     id: `s-${crypto.randomUUID().slice(0, 8)}`,
     durationSec: 5,
     narration: "",
-    title: "新場景",
+    title: pick("新場景", "New scene"),
     subtitle: "",
     assetId: null,
     assetMode: "center",
@@ -145,7 +146,12 @@ export function SceneEditor({
 
   function removeScene(id: string) {
     const target = scenes.find((s) => s.id === id);
-    if (!confirm(`確定刪除場景「${target?.title ?? ""}」？`)) return;
+    if (
+      !confirm(
+        pick(`確定刪除場景「${target?.title ?? ""}」？`, `Delete scene “${target?.title ?? ""}”?`),
+      )
+    )
+      return;
     mutate((prev) => prev.filter((s) => s.id !== id));
     if (selectedId === id) setSelectedId(null);
   }
@@ -160,17 +166,26 @@ export function SceneEditor({
     setBusy(null);
     if (res.ok) {
       setDirty(false);
-      setMessage("已儲存");
+      setMessage(pick("已儲存", "Saved"));
       router.refresh();
     } else {
       const data = await res.json().catch(() => null);
-      setMessage(data?.error?.message ?? "儲存失敗");
+      setMessage(data?.error?.message ?? pick("儲存失敗", "Couldn’t save"));
     }
   }
 
   async function regenerateSelected() {
     if (!selected) return;
-    if (dirty && !confirm("重新生成前建議先儲存。仍要繼續嗎？（只會改這個場景的文字）")) return;
+    if (
+      dirty &&
+      !confirm(
+        pick(
+          "重新生成前建議先儲存。仍要繼續嗎？（只會改這個場景的文字）",
+          "You have unsaved changes. Regenerate anyway? Only this scene’s text will change.",
+        ),
+      )
+    )
+      return;
     setBusy("regen");
     const res = await fetch(`/api/videos/${video.id}/regenerate-scene`, {
       method: "POST",
@@ -181,23 +196,28 @@ export function SceneEditor({
     if (res.ok) {
       const { data } = await res.json();
       setScenes((prev) => prev.map((s) => (s.id === selected.id ? data.scene : s)));
-      setMessage("已重新生成此場景文字");
+      setMessage(pick("已重新生成此場景文字", "Scene text regenerated"));
     } else {
       const data = await res.json().catch(() => null);
-      setMessage(data?.error?.message ?? "重新生成失敗");
+      setMessage(data?.error?.message ?? pick("重新生成失敗", "Couldn’t regenerate"));
     }
   }
 
   function speakPreview() {
     if (!selected?.narration) return;
     const utter = new SpeechSynthesisUtterance(selected.narration);
-    utter.lang = "zh-TW";
+    // 朗讀語音要跟著語系走，否則英文旁白會被中文語音唸出來
+    utter.lang = pick("zh-TW", "en-US");
     speechSynthesis.cancel();
     speechSynthesis.speak(utter);
   }
 
   function switchVideo(id: string) {
-    if (dirty && !confirm("尚未儲存的變更會遺失，確定切換影片？")) return;
+    if (
+      dirty &&
+      !confirm(pick("尚未儲存的變更會遺失，確定切換影片？", "Unsaved changes will be lost. Switch video?"))
+    )
+      return;
     router.push(`/projects/${projectId}/editor?video=${id}`);
   }
 
@@ -212,11 +232,13 @@ export function SceneEditor({
             value={video.id}
             onChange={(e) => switchVideo(e.target.value)}
             className="max-w-72"
-            aria-label="選擇影片"
+            aria-label={pick("選擇影片", "Select video")}
           >
             {videos.map((v) => (
               <option key={v.id} value={v.id}>
-                {v.type === "master" ? "主影片" : "短影音"}｜{v.title}
+                {v.type === "master" ? pick("主影片", "Master") : pick("短影音", "Short-form")}
+                {pick("｜", " · ")}
+                {v.title}
               </option>
             ))}
           </Select>
@@ -251,28 +273,28 @@ export function SceneEditor({
                         {formatTimecode(start)}–{formatTimecode(start + scene.durationSec)}
                       </span>
                       {scene.needsConfirmation ? (
-                        <span className="font-mono text-[11px] text-rec">待確認</span>
+                        <span className="font-mono text-[11px] text-rec">{pick("待確認", "Needs review")}</span>
                       ) : null}
                     </div>
-                    <div className="truncate text-sm font-medium">{scene.title || "（未命名）"}</div>
+                    <div className="truncate text-sm font-medium">{scene.title || pick("（未命名）", "(Untitled)")}</div>
                     <div className="truncate text-xs text-ink-60">{scene.narration}</div>
                   </div>
                   <div
                     className="flex shrink-0 gap-1 font-mono text-[11px] text-ink-40"
                     onClick={(e) => e.stopPropagation()}
                   >
-                    <button className="px-1 hover:text-ink" title="上移" onClick={() => move(scene.id, -1)}>
+                    <button className="px-1 hover:text-ink" title={pick("上移", "Move up")} onClick={() => move(scene.id, -1)}>
                       ↑
                     </button>
-                    <button className="px-1 hover:text-ink" title="下移" onClick={() => move(scene.id, 1)}>
+                    <button className="px-1 hover:text-ink" title={pick("下移", "Move down")} onClick={() => move(scene.id, 1)}>
                       ↓
                     </button>
-                    <button className="px-1 hover:text-ink" title="複製" onClick={() => duplicate(scene.id)}>
+                    <button className="px-1 hover:text-ink" title={pick("複製", "Duplicate")} onClick={() => duplicate(scene.id)}>
                       ⧉
                     </button>
                     <button
                       className="px-1 hover:text-rec"
-                      title="刪除"
+                      title={pick("刪除", "Delete")}
                       onClick={() => removeScene(scene.id)}
                     >
                       ✕
@@ -291,25 +313,29 @@ export function SceneEditor({
               setSelectedId(s.id);
             }}
           >
-            ＋ 新增場景
+            {pick("＋ 新增場景", "+ Add scene")}
           </button>
         </div>
 
         <div className="mt-4 flex flex-wrap items-center gap-3">
           <Button variant="primary" onClick={save} disabled={busy === "save" || !dirty}>
-            {busy === "save" ? "儲存中…" : dirty ? "儲存變更" : "已儲存"}
+            {busy === "save"
+              ? pick("儲存中…", "Saving…")
+              : dirty
+                ? pick("儲存變更", "Save changes")
+                : pick("已儲存", "Saved")}
           </Button>
           <a
             href={`/api/videos/${video.id}/export/srt`}
             className="text-sm underline underline-offset-4"
           >
-            下載 SRT
+            {pick("下載 SRT", "Download SRT")}
           </a>
           <Link
             href={`/projects/${projectId}/renders`}
             className="text-sm underline underline-offset-4"
           >
-            前往渲染
+            {pick("前往渲染", "Go to renders")}
           </Link>
           {message ? <span className="font-mono text-xs text-ink-60">{message}</span> : null}
         </div>
@@ -333,7 +359,7 @@ export function SceneEditor({
                 </button>
               ))}
             </div>
-            <Field label="字幕樣式" className="w-40 !flex-row items-center gap-2">
+            <Field label={pick("字幕樣式", "Subtitles")} className="w-40 !flex-row items-center gap-2">
               <Select
                 value={subtitleStyle}
                 onChange={(e) => {
@@ -362,20 +388,21 @@ export function SceneEditor({
           <div className="rounded-md border border-rule bg-sheet p-5">
             <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
               <h2 className="font-serif text-lg font-semibold">
-                場景 S{String(scenes.findIndex((s) => s.id === selected.id) + 1).padStart(2, "0")}
+                {pick("場景 S", "Scene S")}
+                {String(scenes.findIndex((s) => s.id === selected.id) + 1).padStart(2, "0")}
               </h2>
               <div className="flex gap-2">
                 <Button onClick={regenerateSelected} disabled={busy === "regen"}>
-                  {busy === "regen" ? "生成中…" : "重新生成此場景文字"}
+                  {busy === "regen" ? pick("生成中…", "Generating…") : pick("重新生成此場景文字", "Regenerate text")}
                 </Button>
                 <Button onClick={speakPreview} disabled={!selected.narration}>
-                  語音預覽
+                  {pick("語音預覽", "Play narration")}
                 </Button>
               </div>
             </div>
             <div className="grid gap-4">
               <div className="grid gap-4 sm:grid-cols-[8rem_1fr]">
-                <Field label="秒數">
+                <Field label={pick("秒數", "Seconds")}>
                   <Input
                     type="number"
                     min={1}
@@ -387,8 +414,11 @@ export function SceneEditor({
                   />
                 </Field>
                 <Field
-                  label="旁白"
-                  hint={`中文口語約每秒 4 字，此場景建議 ${narrationLimit} 字內（目前 ${selected.narration.length} 字）`}
+                  label={pick("旁白", "Narration")}
+                  hint={pick(
+                    `中文口語約每秒 4 字，此場景建議 ${narrationLimit} 字內（目前 ${selected.narration.length} 字）`,
+                    `About ${narrationLimit} characters fits this scene length (now ${selected.narration.length})`,
+                  )}
                 >
                   <Textarea
                     value={selected.narration}
@@ -399,14 +429,14 @@ export function SceneEditor({
                 </Field>
               </div>
               <div className="grid gap-4 sm:grid-cols-2">
-                <Field label="畫面標題">
+                <Field label={pick("畫面標題", "On-screen title")}>
                   <Input
                     value={selected.title}
                     maxLength={60}
                     onChange={(e) => updateSelected({ title: e.target.value })}
                   />
                 </Field>
-                <Field label="畫面副標">
+                <Field label={pick("畫面副標", "On-screen subhead")}>
                   <Input
                     value={selected.subtitle ?? ""}
                     maxLength={80}
@@ -415,12 +445,12 @@ export function SceneEditor({
                 </Field>
               </div>
               <div className="grid gap-4 sm:grid-cols-2">
-                <Field label="使用素材">
+                <Field label={pick("使用素材", "Asset")}>
                   <Select
                     value={selected.assetId ?? ""}
                     onChange={(e) => updateSelected({ assetId: e.target.value || null })}
                   >
-                    <option value="">不使用（背景色）</option>
+                    <option value="">{pick("不使用（背景色）", "None (background color)")}</option>
                     {assets
                       .filter((a) => a.type !== "pdf")
                       .map((a) => (
@@ -430,7 +460,7 @@ export function SceneEditor({
                       ))}
                   </Select>
                 </Field>
-                <Field label="素材顯示方式">
+                <Field label={pick("素材顯示方式", "Asset layout")}>
                   <Select
                     value={selected.assetMode}
                     onChange={(e) => updateSelected({ assetMode: e.target.value as Scene["assetMode"] })}
@@ -444,7 +474,7 @@ export function SceneEditor({
                 </Field>
               </div>
               <div className="grid gap-4 sm:grid-cols-3">
-                <Field label="動畫">
+                <Field label={pick("動畫", "Animation")}>
                   <Select
                     value={selected.animation}
                     onChange={(e) => updateSelected({ animation: e.target.value as Scene["animation"] })}
@@ -456,7 +486,7 @@ export function SceneEditor({
                     ))}
                   </Select>
                 </Field>
-                <Field label="轉場（進場）">
+                <Field label={pick("轉場（進場）", "Transition (in)")}>
                   <Select
                     value={selected.transition}
                     onChange={(e) => updateSelected({ transition: e.target.value as Scene["transition"] })}
@@ -468,13 +498,13 @@ export function SceneEditor({
                     ))}
                   </Select>
                 </Field>
-                <Field label="背景色">
+                <Field label={pick("背景色", "Background")}>
                   <div className="flex items-center gap-2">
                     <input
                       type="color"
                       value={selected.backgroundColor ?? brand.primaryColor}
                       onChange={(e) => updateSelected({ backgroundColor: e.target.value })}
-                      aria-label="背景色"
+                      aria-label={pick("背景色", "Background color")}
                     />
                     <span className="font-mono text-xs text-ink-60">
                       {selected.backgroundColor ?? brand.primaryColor}
@@ -486,7 +516,7 @@ export function SceneEditor({
           </div>
         ) : (
           <div className="rounded-md border border-rule bg-sheet p-8 text-center text-sm text-ink-60">
-            從左側 cue sheet 選一個場景開始編輯。
+            {pick("從左側 cue sheet 選一個場景開始編輯。", "Pick a scene from the cue sheet to start editing.")}
           </div>
         )}
       </section>

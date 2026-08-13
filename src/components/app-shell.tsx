@@ -2,6 +2,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import type { ReactNode } from "react";
 import { getSessionUser } from "@/lib/auth";
+import { pick } from "@/lib/i18n";
 import { LogoutButton } from "./logout-button";
 
 /** 登入後頁面外框：通告單式頁首＋內容欄。未登入導回 /login。 */
@@ -19,13 +20,13 @@ export async function AppShell({ children }: { children: ReactNode }) {
           </Link>
           <nav className="flex items-center gap-5 text-sm">
             <Link href="/dashboard" className="hover:underline underline-offset-4">
-              作業檯
+              {pick("作業檯", "Workbench")}
             </Link>
             <Link href="/brands" className="hover:underline underline-offset-4">
-              品牌
+              {pick("品牌", "Brands")}
             </Link>
             <Link href="/settings" className="hover:underline underline-offset-4">
-              設定
+              {pick("設定", "Settings")}
             </Link>
           </nav>
           <div className="ms-auto flex items-center gap-3 text-sm text-ink-60">
