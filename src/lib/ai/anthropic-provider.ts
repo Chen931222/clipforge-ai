@@ -79,23 +79,45 @@ export class AnthropicContentAIProvider implements ContentAIProvider {
     return data.content?.find((c) => c.type === "text")?.text ?? "";
   }
 
-  /** 呼叫一次；JSON 不合法或未過 schema 時附錯誤重試一次（規格 §9）。 */
+  /** 呼叫一次；JSON 不合法或未過 schema 時附具體錯誤重試一次（規格 §9）。 */
   private async callValidated<T>(
     userPrompt: string,
     schema: ZodType<T>,
     maxTokens: number,
   ): Promise<T> {
+    let lastIssues = "";
     for (let attempt = 0; attempt < 2; attempt++) {
       const prompt =
         attempt === 0
           ? userPrompt
-          : `${userPrompt}\n\n上一次輸出的 JSON 不符合結構要求，請修正後重新輸出完整 JSON。`;
+          : `${userPrompt}\n\n上一次輸出的 JSON 不符合結構要求：${lastIssues}。請修正這些欄位後重新輸出完整 JSON。`;
       const text = await this.call(prompt, maxTokens);
       const json = extractJson(text);
-      if (json !== null) {
-        const parsed = schema.safeParse(json);
-        if (parsed.success) return parsed.data;
-        console.warn(`[ai] schema mismatch on attempt ${attempt + 1}`);
+      if (json === null) {
+        lastIssues = "輸出不是合法 JSON（可能被 max_tokens 截斷）";
+        console.warn(`[ai] invalid json on attempt ${attempt + 1}`);
+        continue;
+      }
+      const parsed = schema.safeParse(json);
+      if (parsed.success) return parsed.data;
+      // zod 對 max() 的預設訊息是「Invalid input」，對模型毫無指引——
+      // 這裡把 code 與上下限一起帶上，重試才有機會修對。
+      lastIssues = parsed.error.issues
+        .slice(0, 5)
+        .map((i) => {
+          const bound =
+            "maximum" in i ? `（上限 ${i.maximum}）` : "minimum" in i ? `（下限 ${i.minimum}）` : "";
+          return `${i.path.join(".") || "(根層)"}: ${i.code}${bound} — ${i.message}`;
+        })
+        .join("; ");
+      console.warn(`[ai] schema mismatch on attempt ${attempt + 1}: ${lastIssues}`);
+      // 除錯輔助：把未通過 schema 的完整輸出落地，方便定位是哪個值出問題
+      try {
+        const { mkdirSync, writeFileSync } = await import("node:fs");
+        mkdirSync("var", { recursive: true });
+        writeFileSync("var/ai-debug-last.json", JSON.stringify({ issues: parsed.error.issues, json }, null, 2));
+      } catch {
+        // 純除錯用途，失敗可忽略
       }
     }
     throw new AppError("provider_error", 502, "AI 輸出格式異常，請再試一次");
@@ -105,7 +127,7 @@ export class AnthropicContentAIProvider implements ContentAIProvider {
     return this.callValidated(
       strategyUserPrompt(input, STRATEGY_SHAPE_HINT),
       contentStrategySchema,
-      8000,
+      16000,
     );
   }
 

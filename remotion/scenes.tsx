@@ -142,8 +142,13 @@ function SceneBlock({
   const titleSize = isVertical ? 76 : 88;
   const subtitleSize = isVertical ? 34 : 38;
   const pad = isVertical ? 72 : 110;
+  // 燒錄字幕固定佔住畫面底部（見 SUBTITLE_BAND）；貼底的文字要讓開這條帶狀區，
+  // 否則標題會和字幕疊在一起。
+  const subtitleSafeBottom = Math.max(pad, SUBTITLE_BAND(isVertical));
 
-  const renderText = (color: string, center = false) => (
+  // onImage：文字直接壓在素材上。素材可能是淺色照片或截圖，
+  // 半透明白字會整段消失——這時要加陰影並提高小標不透明度。
+  const renderText = (color: string, onImage = false) => (
     <div
       style={{
         transform: contentTransform,
@@ -152,7 +157,7 @@ function SceneBlock({
         flexDirection: "column",
         gap: 20,
         maxWidth: isVertical ? "88%" : "72%",
-        marginInline: center ? "auto" : undefined,
+        textShadow: onImage ? "0 2px 20px rgba(0,0,0,0.85)" : undefined,
       }}
     >
       {scene.subtitle ? (
@@ -162,7 +167,7 @@ function SceneBlock({
             fontSize: subtitleSize * 0.72,
             letterSpacing: "0.22em",
             color,
-            opacity: 0.72,
+            opacity: onImage ? 0.95 : 0.72,
           }}
         >
           {scene.subtitle}
@@ -194,11 +199,13 @@ function SceneBlock({
         <AbsoluteFill
           style={{
             background:
-              "linear-gradient(to top, rgba(10,10,8,0.72) 0%, rgba(10,10,8,0.12) 55%)",
+              "linear-gradient(to top, rgba(10,10,8,0.86) 0%, rgba(10,10,8,0.55) 42%, rgba(10,10,8,0.10) 78%)",
           }}
         />
-        <AbsoluteFill style={{ justifyContent: "flex-end", padding: pad }}>
-          {renderText("#FFFFFF")}
+        <AbsoluteFill
+          style={{ justifyContent: "flex-end", padding: pad, paddingBottom: subtitleSafeBottom }}
+        >
+          {renderText("#FFFFFF", true)}
         </AbsoluteFill>
       </>
     );
@@ -209,7 +216,7 @@ function SceneBlock({
           <KenBurnsImage src={assetUrl} mode="blur" durationFrames={durationFrames} seed={index} />
         </AbsoluteFill>
         <AbsoluteFill style={{ justifyContent: "center", alignItems: "center", padding: pad }}>
-          <div style={{ textAlign: "center" }}>{renderText("#FFFFFF")}</div>
+          <div style={{ textAlign: "center" }}>{renderText("#FFFFFF", true)}</div>
         </AbsoluteFill>
       </>
     );
@@ -288,6 +295,14 @@ function SceneBlock({
   );
 }
 
+/**
+ * 字幕帶的總高度（距畫面底部）：外距 ＋ 最多兩行字。
+ * 場景文字用這個值讓開底部，兩邊要一起改。
+ */
+const SUBTITLE_BOTTOM = (v: boolean) => (v ? 200 : 64);
+/** 外距 ＋ 兩行字 ＋ 與上方文字的呼吸間距 */
+const SUBTITLE_BAND = (v: boolean) => SUBTITLE_BOTTOM(v) + (v ? 56 : 58) * 1.3 * 2 + 36;
+
 const SUBTITLE_STYLES: Record<
   string,
   (isVertical: boolean) => React.CSSProperties
@@ -336,11 +351,13 @@ function Subtitles({
       style={{
         justifyContent: "flex-end",
         alignItems: "center",
-        paddingBottom: isVertical ? 200 : 64,
+        paddingBottom: SUBTITLE_BOTTOM(isVertical),
         pointerEvents: "none",
       }}
     >
-      <div style={{ ...css, maxWidth: "86%", textAlign: "center" }}>{current.text}</div>
+      <div style={{ ...css, maxWidth: "86%", textAlign: "center", lineHeight: 1.3 }}>
+        {current.text}
+      </div>
     </AbsoluteFill>
   );
 }

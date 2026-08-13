@@ -40,20 +40,26 @@ export function socialCopyUserPrompt(input: SocialCopyInput): string {
 專案：${JSON.stringify(input.project)}`;
 }
 
+/**
+ * 結構提示。**字數上限必須與 schemas.ts 一致**——這些上限是以字元數計算，
+ * 英文專案很容易超過（中文同樣字數資訊量大得多），所以一定要寫進 prompt，
+ * 不能只靠事後驗證重試。
+ */
 export const STRATEGY_SHAPE_HINT = `{
-  "strategyOneLiner": string,
-  "painPoints": string[],
-  "coreMessages": string[],
-  "master": { "title": string, "scenes": Scene[] },
-  "shorts": [{ "title": string, "hook": string, "body": string, "cta": string, "durationSec": number, "scenes": Scene[] }],
-  "socialCopy": { "youtubeTitle": string, "youtubeDescription": string, "instagram": string, "facebook": string, "tiktok": string, "hashtags": string[], "thumbnailTitles": [string, string, string] },
+  "strategyOneLiner": string（≤120 字元，務必精簡）,
+  "painPoints": string[]（1–6 項）,
+  "coreMessages": string[]（1–6 項）,
+  "master": { "title": string（≤80 字元）, "scenes": Scene[]（1–24 個） },
+  "shorts": [{ "title": string（≤60）, "hook": string（≤120）, "body": string（≤300）, "cta": string（≤80）, "durationSec": number（10–35）, "scenes": Scene[] }]（1–5 支）,
+  "socialCopy": { "youtubeTitle": string（≤100）, "youtubeDescription": string（≤2000）, "instagram": string（≤2000）, "facebook": string（≤2000）, "tiktok": string（≤1000）, "hashtags": string[]（3–20 項）, "thumbnailTitles": [string, string, string]（每則 ≤30 字元） },
   "complianceNote": string | null,
   "needsConfirmation": string[]
 }
 Scene = {
-  "id": string, "durationSec": number, "narration": string, "title": string, "subtitle": string,
+  "id": string, "durationSec": number（1–40）, "narration": string（≤400 字元）, "title": string（≤60 字元）, "subtitle": string（≤80 字元）,
   "assetId": string | null, "assetMode": "cover"|"center"|"split"|"blur-bg",
   "animation": "fade"|"rise"|"zoom"|"slide-left"|"slide-right",
   "transition": "cut"|"fade"|"slide"|"wipe",
   "backgroundColor": "#RRGGBB", "needsConfirmation": boolean
-}`;
+}
+所有字數上限以「字元數」計算（英文含空格），超過即視為無效輸出。`;

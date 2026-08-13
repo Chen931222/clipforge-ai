@@ -107,6 +107,7 @@ MP4 下載、SRT、Markdown 腳本、專案 JSON、文案複製都會記一筆**
 
 ## 已知限制
 
+- **AI 看不到素材內容，只拿得到檔名**（`1-dashboard.png`），所以自動配圖常常語意不對，需要在場景編輯器手動調整。要根治得為素材加描述欄位或接視覺模型。
 - Mock TTS 是「節奏對位的合成音軌」，不是真人語音——接真 TTS 時實作 `TTSProvider` 介面即可。
 - 影片內字型使用系統字型（Noto Serif TC → PMingLiU fallback），跨機器渲染字型可能略有差異。
 - Demo 帳號是共用帳號；正式部署前應改為每訪客一份 sandbox 資料。

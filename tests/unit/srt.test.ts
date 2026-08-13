@@ -36,6 +36,34 @@ describe("splitNarration", () => {
   it("空字串回空陣列", () => {
     expect(splitNarration("  ")).toEqual([]);
   });
+  it("英文依句號切句", () => {
+    expect(splitNarration("First line here. Second line here.")).toEqual([
+      "First line here.",
+      "Second line here.",
+    ]);
+  });
+  it("英文長句斷在詞邊界，不切斷單字", () => {
+    const long =
+      "Hiring a developer usually means weeks of scoping calls, vague estimates, and a demo that only works on someone else's laptop.";
+    const chunks = splitNarration(long);
+    expect(chunks.length).toBeGreaterThan(1);
+    // 每塊都必須是完整單字組成——重組後與原句的單字序列一致
+    expect(chunks.join(" ").split(/\s+/)).toEqual(long.split(/\s+/));
+    for (const c of chunks) {
+      expect(c.trim()).toBe(c);
+      expect(c.length).toBeLessThanOrEqual(84);
+    }
+  });
+  it("英文不因中文字數上限被切碎", () => {
+    // 舊版用 18 字元硬切，會產生 "This video was mad" / "e by an AI product"
+    const chunks = splitNarration("This video was made by an AI product I built.");
+    expect(chunks).toEqual(["This video was made by an AI product I built."]);
+  });
+  it("不在 Next.js 這類小數點／檔名處斷句", () => {
+    expect(splitNarration("Built with Next.js and TypeScript.")).toEqual([
+      "Built with Next.js and TypeScript.",
+    ]);
+  });
 });
 
 describe("buildSubtitleCues", () => {

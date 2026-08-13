@@ -157,8 +157,10 @@ export class EdgeTTSProvider implements TTSProvider {
 
   async synthesize(scenes: Scene[], language: string): Promise<TTSResult> {
     const lang = language === "en" ? "en-US" : "zh-TW";
+    // 用 || 而非 ??：.env 常見寫法 `EDGE_TTS_VOICE=` 會得到空字串，
+    // ?? 不會攔截空字串，聲線就會變成空值而合成失敗。
     const voice =
-      process.env.EDGE_TTS_VOICE ?? EDGE_VOICES[language] ?? EDGE_VOICES["zh-TW"];
+      process.env.EDGE_TTS_VOICE || EDGE_VOICES[language] || EDGE_VOICES["zh-TW"];
     const clips: TTSClip[] = [];
     for (const scene of scenes) {
       const text = scene.narration.trim();
