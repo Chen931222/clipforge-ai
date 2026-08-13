@@ -47,7 +47,23 @@ a:hover { text-decoration-color: var(--rec); }
   text-transform: uppercase;
   color: var(--ink-60);
 }
+/* mono 只印度量與編號（DESIGN.md 字體規則）；散文一律 sans */
 .meta { font-family: var(--mono); font-size: 13px; color: var(--ink-40); }
+.aside { font-family: var(--sans); font-size: 13px; color: var(--ink-40); }
+
+/* 印刷通告單的欄位塊：真實資料，不是裝飾 */
+.slug {
+  display: grid; grid-template-columns: repeat(auto-fit, minmax(132px, 1fr));
+  gap: 1px; background: var(--rule);
+  border: 1px solid var(--rule); border-radius: 4px; overflow: hidden;
+  margin-bottom: 18px;
+}
+.slug > div { background: var(--paper); padding: 9px 12px; }
+.slug dt {
+  font-family: var(--sans); font-weight: 500; font-size: 10px;
+  letter-spacing: 0.14em; text-transform: uppercase; color: var(--ink-40);
+}
+.slug dd { font-family: var(--mono); font-size: 14px; margin-top: 2px; }
 
 /* ── 報頭 ── */
 .masthead {
@@ -120,9 +136,11 @@ a:hover { text-decoration-color: var(--rec); }
 /* 賣點：像編號稿紙的行 */
 .points { list-style: none; }
 .point-row {
-  display: grid; grid-template-columns: 34px 1fr 28px; align-items: center;
+  display: grid; grid-template-columns: 34px 1fr auto 28px; align-items: center;
   gap: 8px; border-bottom: 1px solid var(--rule);
+  cursor: pointer;
 }
+.point-row:focus-within { background: rgba(200, 50, 30, 0.05); }
 .point-row:first-child { border-top: 1px solid var(--rule); }
 .point-no { font-family: var(--mono); font-size: 12px; color: var(--ink-40); }
 .point-row input { border: none !important; padding: 9px 0 !important; }
@@ -187,9 +205,11 @@ input[type="color"] {
   position: sticky; top: 0; z-index: 2;
   background: var(--paper); padding: 16px 0 12px;
 }
+/* 疊紙雙框：底下墊一張位移 2px 的紙來表現「抬起來的樣張」，不用陰影（DESIGN.md） */
 .canvas {
   background: var(--well); border: 1px solid var(--ink); border-radius: 6px;
   overflow: hidden;
+  box-shadow: 3px 3px 0 var(--paper), 3px 3px 0 1px var(--rule);
 }
 .canvas.is-vertical { max-width: 300px; margin: 0 auto; }
 .canvas-bar {
@@ -209,7 +229,26 @@ input[type="color"] {
 }
 
 /* cue sheet 表格 */
-.sheet { margin-top: 26px; }
+.sheet { margin-top: 34px; }
+
+/* 重新打樣是這一頁的高潮，給它一次授權過的狀態轉換（DESIGN.md：120–200ms） */
+@keyframes set-in { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+.sheet-set .cue-table tr,
+.sheet-set .card,
+.sheet-set pre.srt {
+  animation: set-in 180ms ease-out backwards;
+}
+.sheet-set .cue-table tr:nth-child(1) { animation-delay: 0ms; }
+.sheet-set .cue-table tr:nth-child(2) { animation-delay: 40ms; }
+.sheet-set .cue-table tr:nth-child(3) { animation-delay: 80ms; }
+.sheet-set .cue-table tr:nth-child(4) { animation-delay: 120ms; }
+.sheet-set .cue-table tr:nth-child(5) { animation-delay: 160ms; }
+.sheet-set .cue-table tr:nth-child(6) { animation-delay: 200ms; }
+.sheet-set .cue-table tr:nth-child(7) { animation-delay: 240ms; }
+.sheet-set .cue-table tr:nth-child(n + 8) { animation-delay: 280ms; }
+@media (prefers-reduced-motion: reduce) {
+  .sheet-set .cue-table tr, .sheet-set .card, .sheet-set pre.srt { animation: none; }
+}
 .cue-table { width: 100%; border-collapse: collapse; }
 .cue-table th {
   text-align: left; padding: 0 10px 8px 0;
@@ -241,7 +280,19 @@ pre.srt {
   padding: 18px 20px; max-height: 460px; overflow: auto;
 }
 
-.deliverables { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 22px; }
+.deliverables { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 52px; }
+
+/* 追溯是這一頁要證明的事，指示語就不能是全頁最小最淡的字 */
+.trace-hint {
+  margin-top: 14px; padding: 10px 0 0; border-top: 1px solid var(--rule);
+  font-size: 14px; color: var(--ink-60);
+}
+.trace-hint b { color: var(--rec); font-family: var(--mono); font-weight: 500; }
+.point-row.is-linked .point-hits { color: var(--rec); }
+.point-hits {
+  font-family: var(--mono); font-size: 12px; color: var(--ink-40);
+  white-space: nowrap; padding-right: 4px;
+}
 
 /* ── 說明與註腳 ── */
 .note {

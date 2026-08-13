@@ -303,6 +303,14 @@ const SUBTITLE_BOTTOM = (v: boolean) => (v ? 200 : 64);
 /** 外距 ＋ 兩行字 ＋ 與上方文字的呼吸間距 */
 const SUBTITLE_BAND = (v: boolean) => SUBTITLE_BOTTOM(v) + (v ? 56 : 58) * 1.3 * 2 + 36;
 
+/**
+ * 字幕永遠是白字，但場景背景是資料驅動的——品牌副色可能是淺色，
+ * 白字打在淺底上會整段消失。柔和陰影在淺底只是一團霧，擋不住，
+ * 所以補一圈緊貼字身的深色描邊；深底上看不出來，淺底上救回可讀性。
+ */
+const SUBTITLE_OUTLINE =
+  "-1px -1px 0 rgba(0,0,0,0.72), 1px -1px 0 rgba(0,0,0,0.72), -1px 1px 0 rgba(0,0,0,0.72), 1px 1px 0 rgba(0,0,0,0.72)";
+
 const SUBTITLE_STYLES: Record<
   string,
   (isVertical: boolean) => React.CSSProperties
@@ -312,7 +320,7 @@ const SUBTITLE_STYLES: Record<
     fontSize: v ? 40 : 44,
     fontWeight: 500,
     color: "#FFFFFF",
-    textShadow: "0 2px 10px rgba(0,0,0,0.85)",
+    textShadow: `${SUBTITLE_OUTLINE}, 0 2px 10px rgba(0,0,0,0.85)`,
   }),
   "bold-short": (v) => ({
     fontFamily: FONT_SANS,
@@ -328,7 +336,7 @@ const SUBTITLE_STYLES: Record<
     fontWeight: 500,
     letterSpacing: "0.12em",
     color: "rgba(255,255,255,0.94)",
-    textShadow: "0 1px 6px rgba(0,0,0,0.7)",
+    textShadow: `${SUBTITLE_OUTLINE}, 0 1px 6px rgba(0,0,0,0.7)`,
   }),
 };
 
@@ -336,16 +344,42 @@ function Subtitles({
   cues,
   style,
   isVertical,
+  scenes,
+  brand,
 }: {
   cues: SubtitleCue[];
   style: string;
   isVertical: boolean;
+  scenes: Scene[];
+  brand: VideoBrand;
 }) {
   const frame = useCurrentFrame();
   const ms = (frame / FPS) * 1000;
   const current = cues.find((c) => ms >= c.startMs && ms < c.endMs);
   if (!current) return null;
   const css = (SUBTITLE_STYLES[style] ?? SUBTITLE_STYLES.classic)(isVertical);
+
+  // 場景底色是資料驅動的：品牌副色可能很淺，白字會整段消失。
+  // 字幕跟場景標題一樣依當下底色決定明暗，深底白字、淺底墨字。
+  let at = 0;
+  let bg = brand.primaryColor;
+  for (const s of scenes) {
+    at += s.durationSec * 1000;
+    if (ms < at) {
+      bg = s.backgroundColor ?? brand.primaryColor;
+      break;
+    }
+  }
+  const onLight = readableText(bg, brand) === "#1C1A15";
+  const contrast: React.CSSProperties = onLight
+    ? {
+        color: "#1C1A15",
+        WebkitTextStroke: undefined,
+        textShadow:
+          "0 1px 0 rgba(255,255,255,0.9), 0 0 6px rgba(255,255,255,0.85), 0 2px 10px rgba(255,255,255,0.7)",
+      }
+    : {};
+
   return (
     <AbsoluteFill
       style={{
@@ -355,7 +389,15 @@ function Subtitles({
         pointerEvents: "none",
       }}
     >
-      <div style={{ ...css, maxWidth: "86%", textAlign: "center", lineHeight: 1.3 }}>
+      <div
+        style={{
+          ...css,
+          ...contrast,
+          maxWidth: "86%",
+          textAlign: "center",
+          lineHeight: 1.3,
+        }}
+      >
         {current.text}
       </div>
     </AbsoluteFill>
@@ -398,7 +440,13 @@ export const SceneComposition: React.FC<SceneCompositionProps> = ({
           </Sequence>
         );
       })}
-      <Subtitles cues={cues} style={subtitleStyle} isVertical={isVertical} />
+      <Subtitles
+        cues={cues}
+        style={subtitleStyle}
+        isVertical={isVertical}
+        scenes={scenes}
+        brand={brand}
+      />
       {brand.logoUrl ? (
         <AbsoluteFill
           style={{

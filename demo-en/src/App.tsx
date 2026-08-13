@@ -98,6 +98,10 @@ export function App() {
   const [plates, setPlates] = useState<Plate[]>([]);
   const [strategy, setStrategy] = useState<ContentStrategy | null>(null);
   const [working, setWorking] = useState(false);
+  /** 訪客動過原稿之前，右欄是「範例」不是「你的」——不能讓人誤讀成真實案例 */
+  const [edited, setEdited] = useState(false);
+  /** 每重排一次就換 key，讓 cue sheet 播一次進場動態 */
+  const [generation, setGeneration] = useState(0);
   const [aspect, setAspect] = useState<"16:9" | "9:16">("16:9");
   const [tab, setTab] = useState<Tab>("scenes");
   const [source, setSource] = useState<Source>({ kind: "master" });
@@ -115,6 +119,7 @@ export function App() {
       ]);
       setStrategy(result);
       setSource({ kind: "master" });
+      setGeneration((g) => g + 1);
       setWorking(false);
     },
     [],
@@ -149,17 +154,26 @@ export function App() {
     [brief.brandName, brief.accent],
   );
 
-  const linkedScenes = useMemo(() => {
-    if (linked === null || !master) return new Set<number>();
-    return scenesForPoint(master.scenes, brief.sellingPoints[linked] ?? "");
-  }, [linked, master, brief.sellingPoints]);
+  /** 每條賣點被寫進哪些場景，先算好——點一下、鍵盤 focus、滑過都用同一份資料 */
+  const hitsByPoint = useMemo(() => {
+    if (!master) return [] as number[][];
+    return brief.sellingPoints.map((p) => [...scenesForPoint(master.scenes, p)]);
+  }, [master, brief.sellingPoints]);
+
+  const linkedScenes = useMemo(
+    () => new Set(linked === null ? [] : (hitsByPoint[linked] ?? [])),
+    [linked, hitsByPoint],
+  );
 
   const srt = useMemo(
     () => (master ? toSrt(buildSubtitleCues(master.scenes)) : ""),
     [master],
   );
 
-  const patch = (p: Partial<Brief>) => setBrief((b) => ({ ...b, ...p }));
+  const patch = (p: Partial<Brief>) => {
+    setEdited(true);
+    setBrief((b) => ({ ...b, ...p }));
+  };
 
   const onPlates = (files: FileList | null) => {
     if (!files?.length) return;
@@ -179,11 +193,11 @@ export function App() {
           ClipForge<span>&nbsp;AI</span>
         </div>
         <div className="masthead-meta">
-          <span className="meta">Browser demo · nothing is uploaded or stored</span>
-          <a className="meta" href={GITHUB} target="_blank" rel="noreferrer">
+          <span className="aside">Browser demo · nothing is uploaded or stored</span>
+          <a className="aside" href={GITHUB} target="_blank" rel="noreferrer">
             Source on GitHub ↗
           </a>
-          <a className="meta" href={FREELANCER} target="_blank" rel="noreferrer">
+          <a className="aside" href={FREELANCER} target="_blank" rel="noreferrer">
             Hire me on Freelancer ↗
           </a>
         </div>
@@ -205,7 +219,7 @@ export function App() {
 
           <div className="column-head">
             <h2 id="copy-head">Copy</h2>
-            <span className="meta">your original</span>
+            <span className="aside">{edited ? "your original" : "sample brief — overwrite it"}</span>
           </div>
 
           <div className="field">
@@ -248,19 +262,28 @@ export function App() {
                   key={i}
                   className={`point-row${linked === i ? " is-linked" : ""}`}
                   onMouseEnter={() => setLinked(i)}
-                  onMouseLeave={() => setLinked(null)}
+                  onMouseLeave={() => setLinked((l) => (l === i ? null : l))}
+                  onClick={() => setLinked(i)}
                 >
                   <span className="point-no">P{i + 1}</span>
                   <input
                     type="text"
                     aria-label={`Selling point ${i + 1}`}
                     value={point}
+                    // 觸控與鍵盤也要走得到追溯——這是整頁要證明的事，
+                    // 綁在 hover 上等於手機和鍵盤使用者看不到
+                    onFocus={() => setLinked(i)}
                     onChange={(e) => {
                       const next = [...brief.sellingPoints];
                       next[i] = e.target.value;
                       patch({ sellingPoints: next });
                     }}
                   />
+                  <span className="point-hits" aria-hidden="true">
+                    {(hitsByPoint[i] ?? [])
+                      .map((s) => `S${String(s + 1).padStart(2, "0")}`)
+                      .join(" ")}
+                  </span>
                   <button
                     type="button"
                     className="point-drop"
@@ -284,10 +307,28 @@ export function App() {
                 + Add a point
               </button>
             )}
-            <p className="field-hint">
-              {linked !== null && linkedScenes.size === 0 && brief.sellingPoints[linked]?.trim()
-                ? `P${linked + 1} did not make the ${brief.masterDuration}s cut — a main video carries three points. Try a longer one, or move it up.`
-                : "Hover a point to see which scenes it ended up in."}
+            <p className="trace-hint">
+              {linked !== null && linkedScenes.size === 0 && brief.sellingPoints[linked]?.trim() ? (
+                <>
+                  <b>P{linked + 1}</b> did not make the {brief.masterDuration}s cut — a main video
+                  carries three points. Try a longer one, or move it up.
+                </>
+              ) : linked !== null && linkedScenes.size > 0 ? (
+                <>
+                  <b>P{linked + 1}</b> became{" "}
+                  <b>
+                    {[...linkedScenes]
+                      .map((s) => `S${String(s + 1).padStart(2, "0")}`)
+                      .join(", ")}
+                  </b>{" "}
+                  in the proof. Every line you write stays traceable to a scene.
+                </>
+              ) : (
+                <>
+                  Every line you write stays traceable. Tap or hover a point to see the scenes it
+                  became.
+                </>
+              )}
             </p>
           </div>
 
@@ -353,7 +394,9 @@ export function App() {
               onChange={(e) => onPlates(e.target.files)}
               style={{ fontSize: 14 }}
             />
-            <p className="field-hint">Stays in your browser. Nothing is uploaded.</p>
+            <p className="aside" style={{ marginTop: 6 }}>
+              Stays in your browser. Nothing is uploaded.
+            </p>
             {plates.length > 0 && (
               <div className="plates">
                 {plates.map((p) => (
@@ -388,6 +431,27 @@ export function App() {
             <h2 id="proof-head">Proof</h2>
             <span className="stamp">Template engine · not a live model</span>
           </div>
+
+          <dl className="slug">
+            <div>
+              <dt>Production</dt>
+              <dd>{brief.brandName || "—"}</dd>
+            </div>
+            <div>
+              <dt>Reel</dt>
+              <dd>{source.kind === "master" ? "R01 · main" : `R0${source.index + 2} · short`}</dd>
+            </div>
+            <div>
+              <dt>Running time</dt>
+              <dd>
+                {formatTimecode(shownScenes.reduce((s, sc) => s + sc.durationSec, 0))}
+              </dd>
+            </div>
+            <div>
+              <dt>Scenes</dt>
+              <dd>{shownScenes.length}</dd>
+            </div>
+          </dl>
 
           <div className="canvas-wrap">
             <div className="canvas-bar">
@@ -436,7 +500,7 @@ export function App() {
                 />
               )}
             </div>
-            <p className="meta" style={{ marginTop: 8 }}>
+            <p className="aside" style={{ marginTop: 10 }}>
               Silent preview — the shipped pipeline adds a neural voiceover and renders this to MP4
               on a worker.
             </p>
@@ -461,7 +525,7 @@ export function App() {
             ))}
           </div>
 
-          <div className="sheet">
+          <div className="sheet sheet-set" key={generation}>
             {tab === "scenes" && master && (
               <table className="cue-table">
                 <caption className="sr-only">Scene-by-scene script for the main video</caption>
@@ -498,7 +562,9 @@ export function App() {
                   <article className="card" key={short.title + i}>
                     <div className="card-head">
                       <h3>{short.title}</h3>
-                      <span className="meta">R{String(i + 2).padStart(2, "0")} · {short.durationSec}s · 9:16</span>
+                      <span className="meta">
+                        R{String(i + 2).padStart(2, "0")} · {short.durationSec}s · 9:16
+                      </span>
                     </div>
                     <p>{short.hook}</p>
                     <button
