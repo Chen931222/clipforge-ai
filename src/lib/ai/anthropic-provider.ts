@@ -111,13 +111,19 @@ export class AnthropicContentAIProvider implements ContentAIProvider {
         })
         .join("; ");
       console.warn(`[ai] schema mismatch on attempt ${attempt + 1}: ${lastIssues}`);
-      // 除錯輔助：把未通過 schema 的完整輸出落地，方便定位是哪個值出問題
-      try {
-        const { mkdirSync, writeFileSync } = await import("node:fs");
-        mkdirSync("var", { recursive: true });
-        writeFileSync("var/ai-debug-last.json", JSON.stringify({ issues: parsed.error.issues, json }, null, 2));
-      } catch {
-        // 純除錯用途，失敗可忽略
+      // 開發時把未過 schema 的完整輸出落地（var/ 已 gitignore），
+      // 方便定位是哪個值出問題——schema 不符是這個 provider 最常見的失敗。
+      if (process.env.NODE_ENV !== "production") {
+        try {
+          const { mkdirSync, writeFileSync } = await import("node:fs");
+          mkdirSync("var", { recursive: true });
+          writeFileSync(
+            "var/ai-debug-last.json",
+            JSON.stringify({ issues: parsed.error.issues, json }, null, 2),
+          );
+        } catch {
+          // 純除錯用途，失敗可忽略
+        }
       }
     }
     throw new AppError("provider_error", 502, "AI 輸出格式異常，請再試一次");
