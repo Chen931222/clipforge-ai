@@ -8,6 +8,9 @@
 - [ ] `pnpm dev` 已啟動（http://localhost:3410）
 - [ ] `pnpm worker` 已啟動且 log 出現「就緒，開始輪詢」（首次啟動要下載 113MB Chrome，**務必提前**）
 - [ ] `.env` 的 `TTS_PROVIDER=edge`（真中文語音）；當場斷網也不會炸，會自動退回 mock 音軌
+- [ ] `.env` 的 `AI_PROVIDER=mock`——**陪跑當下不要開真 AI**。mock 生成約 2 秒，
+      `anthropic` 要 90–170 秒，客戶會盯著轉圈圈看三分鐘。真 AI 留給事後正式產出
+      （改成 `AI_PROVIDER=anthropic` 即可，金鑰與模型已設好），文案品質確實較好。
 - [ ] 開好 `/demo` 確認森日茶研範例正常 —— 這是渲染等待時的備用展示
 - [ ] 跟客戶要素材：**3 張產品照（JPG/PNG）＋5 句話介紹＋3–5 個賣點＋一句 CTA**（可以事前用 LINE 收）
 
