@@ -10,3 +10,6 @@ playwright-report/
 test-results/
 .remotion/
 tsconfig.tsbuildinfo
+demo-en/dist/
+demo-en/clipforge-demo/
+.vercel

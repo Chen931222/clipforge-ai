@@ -50,6 +50,16 @@ function enFragment(text: string): string {
   return text.trim().replace(/[\s.,;:!?–—-]+$/, "");
 }
 
+/**
+ * 英文輸入嵌進句子中間時，開頭的大寫要降回小寫（"Office managers" → "office managers"）。
+ * 連續兩個大寫視為縮寫或專有名詞（CTOs、SaaS teams），保持原樣。
+ */
+function enLowerLead(text: string): string {
+  const t = text.trim();
+  if (!t || /^[A-Z][A-Z]/.test(t)) return t;
+  return `${t.charAt(0).toLowerCase()}${t.slice(1)}`;
+}
+
 /** 英文句尾補標點；已經有結束標點就不重複加。 */
 function enSentence(text: string): string {
   const body = text.trim().replace(/[\s,;:–—-]+$/, "");
@@ -188,7 +198,7 @@ function buildMasterScenes(input: StrategyInput): Scene[] {
       durationSec: timing.problem,
       narration: en
         ? clampNarration(
-            `For ${audience || "busy teams"}, finding the right choice takes too much time. It shouldn't.`,
+            `For ${enLowerLead(audience) || "busy teams"}, finding the right choice takes too much time. It shouldn't.`,
             timing.problem,
             true,
           )
@@ -219,7 +229,15 @@ function buildMasterScenes(input: StrategyInput): Scene[] {
         durationSec: timing.values[i],
         narration: point
           ? en
-            ? clampNarration(point, timing.values[i], true)
+            ? clampNarration(
+                `${enFragment(point)}${[
+                  ` — one of the reasons people choose ${project.productName}.`,
+                  " — not a slogan, a difference you can use.",
+                  " — you notice it in everyday use.",
+                ][i % 3]}`,
+                timing.values[i],
+                true,
+              )
             : clampNarration(
                 `${point}${[
                   `——這是${project.productName}最被在意的理由。`,

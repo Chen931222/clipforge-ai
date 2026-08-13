@@ -1,0 +1,274 @@
+/* ClipForge 的紙本作業系統，照 DESIGN.md 的 token 實作。
+   手寫 CSS 而非 Tailwind：這是單頁 bespoke 版面，token 要和 DESIGN.md 一對一，
+   多引一套建置工具換不到東西。 */
+
+:root {
+  --paper: #f7f5f0;
+  --sheet: #ffffff;
+  --ink: #1c1a15;
+  --ink-60: #5c574b;
+  --ink-40: #8a8478;
+  --rec: #c8321e;
+  --rule: #d9d4c8;
+  --well: #17150f;
+
+  --serif: "Noto Serif TC", Georgia, serif;
+  --sans: "Noto Sans TC", system-ui, -apple-system, sans-serif;
+  --mono: "Chivo Mono", ui-monospace, "Cascadia Mono", Consolas, monospace;
+
+  --gap: clamp(28px, 4vw, 56px);
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+html { -webkit-text-size-adjust: 100%; }
+
+body {
+  background: var(--paper);
+  color: var(--ink);
+  font-family: var(--sans);
+  font-size: 16px;
+  line-height: 1.6;
+  /* 極淡紙紋，避免大片純色看起來像投影片 */
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='3'/%3E%3C/filter%3E%3Crect width='160' height='160' filter='url(%23n)' opacity='0.035'/%3E%3C/svg%3E");
+}
+
+button, input, textarea, select { font: inherit; color: inherit; }
+button { cursor: pointer; background: none; border: none; }
+a { color: inherit; text-decoration-color: var(--rule); text-underline-offset: 4px; }
+a:hover { text-decoration-color: var(--rec); }
+
+/* ── 印刷欄名：表單標籤與表頭共用 ── */
+.label {
+  font-family: var(--sans);
+  font-weight: 500;
+  font-size: 12px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--ink-60);
+}
+.meta { font-family: var(--mono); font-size: 13px; color: var(--ink-40); }
+
+/* ── 報頭 ── */
+.masthead {
+  display: flex; align-items: baseline; justify-content: space-between;
+  gap: 20px; flex-wrap: wrap;
+  padding: 22px var(--gap) 14px;
+  border-bottom: 1px solid var(--rule);
+}
+.wordmark {
+  font-family: var(--sans); font-weight: 700;
+  font-size: 15px; letter-spacing: 0.34em; text-transform: uppercase;
+}
+.wordmark span { color: var(--rec); }
+.masthead-meta { display: flex; gap: 18px; align-items: baseline; flex-wrap: wrap; }
+
+/* ── 主版面：對開兩欄 ── */
+.spread {
+  display: grid;
+  grid-template-columns: minmax(0, 4fr) minmax(0, 7fr);
+  gap: var(--gap);
+  max-width: 1560px;
+  margin: 0 auto;
+  padding: var(--gap) var(--gap) 96px;
+  align-items: start;
+}
+@media (max-width: 1080px) {
+  .spread { grid-template-columns: minmax(0, 1fr); gap: 44px; }
+}
+
+.column-head {
+  display: flex; align-items: baseline; justify-content: space-between;
+  gap: 16px; padding-bottom: 10px; margin-bottom: 22px;
+  border-bottom: 2px solid var(--ink);
+}
+.column-head h2 {
+  font-family: var(--serif); font-weight: 700;
+  font-size: 26px; letter-spacing: -0.01em;
+}
+
+/* ── 左欄：原稿 ── */
+.hero {
+  font-family: var(--serif); font-weight: 700;
+  /* 上限壓在 52px：左欄約 500px 寬，再大「One paragraph in.」就會自己折行，
+     蓋掉刻意安排的兩行結構 */
+  font-size: clamp(34px, 3.5vw, 52px); line-height: 1.08;
+  letter-spacing: -0.02em; margin-bottom: 18px;
+  text-wrap: balance;
+}
+.hero em { font-style: normal; color: var(--rec); }
+.standfirst {
+  font-size: 17px; color: var(--ink-60); max-width: 46ch; margin-bottom: 34px;
+}
+
+.field { margin-bottom: 20px; }
+.field > .label { display: block; margin-bottom: 6px; }
+.field input[type="text"], .field textarea {
+  width: 100%;
+  background: transparent;
+  border: none; border-bottom: 1px solid var(--rule);
+  padding: 7px 2px;
+  font-size: 16px;
+  border-radius: 0;
+}
+.field textarea { resize: vertical; min-height: 132px; line-height: 1.55; }
+.field input:focus, .field textarea:focus, select:focus {
+  outline: none; border-bottom-color: var(--ink);
+}
+.field-hint { font-family: var(--mono); font-size: 12px; color: var(--ink-40); margin-top: 5px; }
+
+/* 賣點：像編號稿紙的行 */
+.points { list-style: none; }
+.point-row {
+  display: grid; grid-template-columns: 34px 1fr 28px; align-items: center;
+  gap: 8px; border-bottom: 1px solid var(--rule);
+}
+.point-row:first-child { border-top: 1px solid var(--rule); }
+.point-no { font-family: var(--mono); font-size: 12px; color: var(--ink-40); }
+.point-row input { border: none !important; padding: 9px 0 !important; }
+.point-row.is-linked { background: rgba(200, 50, 30, 0.05); }
+.point-row.is-linked .point-no { color: var(--rec); }
+.point-drop {
+  font-family: var(--mono); font-size: 16px; color: var(--ink-40);
+  line-height: 1; padding: 4px;
+}
+.point-drop:hover { color: var(--rec); }
+
+.controls { display: flex; gap: 14px; flex-wrap: wrap; margin: 26px 0 6px; }
+.controls label { display: flex; flex-direction: column; gap: 5px; }
+select {
+  background: var(--sheet); border: 1px solid var(--rule); border-radius: 4px;
+  padding: 7px 10px; font-size: 14px;
+}
+input[type="color"] {
+  width: 46px; height: 34px; padding: 2px; border: 1px solid var(--rule);
+  border-radius: 4px; background: var(--sheet);
+}
+
+.btn {
+  font-family: var(--sans); font-weight: 700;
+  font-size: 13px; letter-spacing: 0.14em; text-transform: uppercase;
+  padding: 13px 22px; border-radius: 4px; border: 1px solid transparent;
+  transition: background-color 160ms ease-out, color 160ms ease-out;
+}
+.btn-primary { background: var(--rec); color: #fff; }
+.btn-primary:hover { background: #a82817; }
+.btn-primary:disabled { background: var(--ink-40); cursor: progress; }
+.btn-ghost { border-color: var(--ink); }
+.btn-ghost:hover { background: var(--ink); color: var(--paper); }
+.btn-small {
+  font-size: 11px; letter-spacing: 0.1em; padding: 7px 12px;
+  border: 1px solid var(--rule); border-radius: 4px;
+}
+.btn-small:hover { border-color: var(--ink); }
+.btn-small[aria-pressed="true"] { background: var(--ink); color: var(--paper); border-color: var(--ink); }
+
+.set-row { display: flex; align-items: center; gap: 16px; margin-top: 28px; flex-wrap: wrap; }
+
+/* 上傳的素材：像貼在稿旁的小樣 */
+.plates { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 12px; }
+.plate {
+  width: 54px; height: 54px; object-fit: cover;
+  border: 1px solid var(--rule); border-radius: 3px; background: var(--sheet);
+}
+
+/* ── 右欄：打樣 ── */
+.proof { position: relative; }
+.stamp {
+  display: inline-block;
+  font-family: var(--sans); font-weight: 700;
+  font-size: 11px; letter-spacing: 0.2em; text-transform: uppercase;
+  color: var(--rec); border: 2px solid var(--rec); border-radius: 3px;
+  padding: 5px 10px; transform: rotate(-3deg);
+}
+
+/* 底色不可省：sticky 區塊沒有背景時，捲上來的 cue sheet 會從說明文字後面透出來 */
+.canvas-wrap {
+  position: sticky; top: 0; z-index: 2;
+  background: var(--paper); padding: 16px 0 12px;
+}
+.canvas {
+  background: var(--well); border: 1px solid var(--ink); border-radius: 6px;
+  overflow: hidden;
+}
+.canvas.is-vertical { max-width: 300px; margin: 0 auto; }
+.canvas-bar {
+  display: flex; align-items: center; justify-content: space-between;
+  gap: 12px; margin-bottom: 10px; flex-wrap: wrap;
+}
+.tabs { display: flex; gap: 6px; flex-wrap: wrap; }
+
+.rec-dot {
+  display: inline-block; width: 9px; height: 9px; border-radius: 50%;
+  background: var(--rec); margin-right: 7px; vertical-align: baseline;
+}
+.is-working .rec-dot { animation: rec 1.2s ease-in-out infinite; }
+@keyframes rec { 0%, 100% { opacity: 0.35; } 50% { opacity: 1; } }
+@media (prefers-reduced-motion: reduce) {
+  .is-working .rec-dot { animation: none; }
+}
+
+/* cue sheet 表格 */
+.sheet { margin-top: 26px; }
+.cue-table { width: 100%; border-collapse: collapse; }
+.cue-table th {
+  text-align: left; padding: 0 10px 8px 0;
+  border-bottom: 1px solid var(--ink);
+  font-family: var(--sans); font-weight: 500; font-size: 12px;
+  letter-spacing: 0.06em; text-transform: uppercase; color: var(--ink-60);
+  white-space: nowrap;
+}
+.cue-table td { padding: 13px 10px 13px 0; border-bottom: 1px solid var(--rule); vertical-align: top; }
+.cue-table tr.is-linked td { background: rgba(200, 50, 30, 0.05); }
+.cue-no, .cue-tc { font-family: var(--mono); font-size: 13px; color: var(--ink-40); white-space: nowrap; }
+.cue-title { font-weight: 500; }
+.cue-line { color: var(--ink-60); font-size: 15px; margin-top: 3px; }
+.mark {
+  display: inline-block; color: var(--rec); font-family: var(--mono);
+  font-size: 12px; margin-left: 8px;
+}
+
+.stack { display: grid; gap: 18px; }
+.card { border: 1px solid var(--rule); border-radius: 6px; background: var(--sheet); padding: 18px 20px; }
+.card h3 { font-family: var(--serif); font-size: 19px; font-weight: 700; margin-bottom: 4px; }
+.card p { font-size: 15px; color: var(--ink-60); }
+.card-head { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; margin-bottom: 8px; }
+
+pre.srt {
+  font-family: var(--mono); font-size: 13px; line-height: 1.7;
+  white-space: pre-wrap; word-break: break-word;
+  border: 1px solid var(--rule); border-radius: 6px; background: var(--sheet);
+  padding: 18px 20px; max-height: 460px; overflow: auto;
+}
+
+.deliverables { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 22px; }
+
+/* ── 說明與註腳 ── */
+.note {
+  border-left: 2px solid var(--rec); padding: 4px 0 4px 16px;
+  font-size: 14px; color: var(--ink-60); max-width: 62ch;
+}
+.colophon {
+  border-top: 1px solid var(--rule);
+  padding: 34px var(--gap) 64px;
+  max-width: 1560px; margin: 0 auto;
+  display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 28px;
+}
+.colophon h4 { font-family: var(--sans); font-weight: 500; font-size: 12px; letter-spacing: 0.06em; text-transform: uppercase; color: var(--ink-60); margin-bottom: 8px; }
+.colophon p { font-size: 14px; color: var(--ink-60); }
+
+.sr-only {
+  position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px;
+  overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0;
+}
+
+@media (max-width: 640px) {
+  .masthead { padding: 16px 20px 12px; }
+  .spread { padding: 24px 20px 64px; }
+  .canvas-wrap { position: static; }
+  /* 表格降級成卡片式行 */
+  .cue-table, .cue-table tbody, .cue-table tr, .cue-table td { display: block; width: 100%; }
+  .cue-table thead { display: none; }
+  .cue-table tr { border-bottom: 1px solid var(--rule); padding: 12px 0; }
+  .cue-table td { border: none; padding: 2px 0; }
+}

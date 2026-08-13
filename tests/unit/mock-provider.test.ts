@@ -159,6 +159,33 @@ describe("MockContentAIProvider（英文專案）", () => {
     expect(dump).not.toMatch(CJK_PUNCT);
   });
 
+  it("賣點場景的旁白不是標題原句照抄", async () => {
+    const strategy = await provider.generateStrategy(enInput);
+    const valueScenes = strategy.master.scenes.filter((s) =>
+      enInput.project.sellingPoints.some((p) => s.title === p),
+    );
+    expect(valueScenes.length).toBeGreaterThan(0);
+    for (const s of valueScenes) {
+      // 中文分支會接一句轉折，英文分支不該只是把標題再唸一次
+      expect(s.narration.replace(/[.\s]+$/, "")).not.toBe(s.title.replace(/[.\s]+$/, ""));
+      expect(s.narration.startsWith(s.title.replace(/[.\s]+$/, ""))).toBe(true);
+    }
+  });
+
+  it("受眾嵌進句中時降回小寫，縮寫保持原樣", async () => {
+    const common = await provider.generateStrategy({
+      ...enInput,
+      project: { ...enInput.project, audience: "Office managers and home hosts" },
+    });
+    expect(JSON.stringify(common)).toContain("For office managers and home hosts");
+
+    const acronym = await provider.generateStrategy({
+      ...enInput,
+      project: { ...enInput.project, audience: "CTOs at Series A startups" },
+    });
+    expect(JSON.stringify(acronym)).toContain("For CTOs at Series A startups");
+  });
+
   it("缺料的英文專案也不會漏中文（needsConfirmation／痛點／核心訊息／短片 CTA）", async () => {
     const thin = {
       ...enInput,

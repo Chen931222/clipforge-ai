@@ -20,7 +20,15 @@ const eslintConfig = [
       "playwright-report/**",
       "test-results/**",
       "next-env.d.ts",
+      // demo 網站的建置產物（壓縮過的 bundle，不是原始碼）
+      "demo-en/clipforge-demo/**",
+      "demo-en/dist/**",
     ],
+  },
+  {
+    // demo-en 是獨立的 Vite 應用，不在 Next 裡跑，next/image 的規則不適用
+    files: ["demo-en/**/*.tsx"],
+    rules: { "@next/next/no-img-element": "off" },
   },
   {
     rules: {

@@ -23,7 +23,10 @@
     "e2e:reset": "cross-env DATABASE_URL=file:./e2e.db node scripts/reset-db.mjs",
     "e2e:serve": "cross-env DATABASE_URL=file:./e2e.db next start -p 3411",
     "test:e2e": "pnpm build && pnpm e2e:reset && playwright test",
-    "verify": "pnpm lint && pnpm typecheck && pnpm test && pnpm build"
+    "demo:dev": "vite --config demo-en/vite.config.ts",
+    "demo:build": "vite build --config demo-en/vite.config.ts",
+    "demo:typecheck": "tsc -p demo-en/tsconfig.json --noEmit",
+    "verify": "pnpm lint && pnpm typecheck && pnpm demo:typecheck && pnpm test && pnpm build"
   },
   "prisma": {
     "seed": "tsx prisma/seed.ts"
@@ -59,6 +62,7 @@
     "@types/react": "19.2.18",
     "@types/react-dom": "19.2.4",
     "@types/ws": "^8.18.1",
+    "@vitejs/plugin-react": "^6.0.5",
     "cross-env": "10.1.0",
     "eslint": "9.39.5",
     "eslint-config-next": "15.5.22",
@@ -66,6 +70,7 @@
     "tailwindcss": "4.3.3",
     "tsx": "4.23.8",
     "typescript": "5.9.3",
+    "vite": "^8.2.1",
     "vitest": "3.2.7"
   }
 }

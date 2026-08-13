@@ -98,6 +98,19 @@ Demo 帳號：`demo@clipforge.local` / `Demo1234!`（`/demo` 會自動登入）�
 
 MP4 下載、SRT、Markdown 腳本、專案 JSON、文案複製都會記一筆**匿名事件**（只記種類＋專案，不記使用者），彙總顯示在「設定 → 匯出行為統計」。拿來觀察試用客戶實際帶走哪種輸出、決定定價方向。
 
+## 線上互動 Demo（無後端）
+
+**https://clipforge-demo.vercel.app** — 訪客輸入自己的產品描述，當場拿到分鏡腳本、Remotion Player 即時預覽、SRT 與企劃 JSON。整包跑在瀏覽器裡：沒有伺服器、沒有帳號、沒有上傳，重整就消失。
+
+用的是產品自己的 `MockContentAIProvider`（同一份程式碼編進瀏覽器），所以**它是決定性的模板引擎，不是即時模型**——頁面上有明確標示，正式管線才會呼叫 Claude。原始碼在 `demo-en/`。
+
+```bash
+pnpm demo:dev      # port 5199
+pnpm demo:build    # 輸出 demo-en/clipforge-demo/
+```
+
+部署：本機 build 後從 `demo-en/clipforge-demo/` 直接 `vercel deploy --prod`。**不能讓 Vercel 自己 build**——原始碼 import 了 deploy root 之外的 `../src` 與 `../remotion`。
+
 ## 陪跑展示
 
 10 分鐘客戶實測腳本（含講稿、時間表、異常應對）：[docs/demo-playbook.md](docs/demo-playbook.md)。
