@@ -22,6 +22,8 @@ import { DURATION_OPTIONS, SAMPLE_BRIEF, STYLE_OPTIONS, type Brief } from "./sam
 const provider = new MockContentAIProvider();
 const GITHUB = "https://github.com/Chen931222/clipforge-ai";
 const FREELANCER = "https://www.freelancer.com/u/yachengc";
+/** 預覽與匯出必須同一個值，否則下載到的東西跟看到的不一樣 */
+const SUBTITLE_STYLE = "classic";
 
 interface Plate {
   id: string;
@@ -82,12 +84,64 @@ function scenesForPoint(scenes: Scene[], point: string): Set<number> {
 }
 
 function download(filename: string, body: string, mime: string) {
-  const url = URL.createObjectURL(new Blob([body], { type: mime }));
+  saveBlob(filename, new Blob([body], { type: mime }));
+}
+
+function saveBlob(filename: string, blob: Blob) {
+  const url = URL.createObjectURL(blob);
   const a = document.createElement("a");
   a.href = url;
   a.download = filename;
   a.click();
   URL.revokeObjectURL(url);
+}
+
+/**
+ * 瀏覽器內把同一份 Remotion 合成編碼成 MP4（WebCodecs，沒有伺服器參與）。
+ *
+ * 兩個刻意的取捨，兩個都要對訪客講清楚：
+ * - 縮到一半（960×540）。每一幀都要先把 HTML 光柵化進 canvas，1080p 在
+ *   一般筆電上會慢到不像 demo；正式流程是 worker 上的 1080p。
+ * - 靜音。demo 本來就沒有配音軌，開音訊編碼只會多一個失敗點。
+ */
+const EXPORT_SCALE = 0.5;
+
+async function renderInBrowser(opts: {
+  scenes: Scene[];
+  brand: VideoBrand;
+  assetMap: Record<string, string>;
+  vertical: boolean;
+  signal: AbortSignal;
+  onProgress: (ratio: number) => void;
+}): Promise<Blob> {
+  const { renderMediaOnWeb } = await import("@remotion/web-renderer");
+  const props = {
+    scenes: opts.scenes,
+    brand: opts.brand,
+    subtitleStyle: SUBTITLE_STYLE,
+    assetMap: opts.assetMap,
+    voiceoverUrl: null,
+    musicUrl: null,
+  };
+  const result = await renderMediaOnWeb({
+    composition: {
+      component: SceneComposition,
+      id: "demo",
+      width: opts.vertical ? 1080 : 1920,
+      height: opts.vertical ? 1920 : 1080,
+      fps: FPS,
+      durationInFrames: totalFrames(opts.scenes),
+      defaultProps: props,
+    },
+    inputProps: props,
+    container: "mp4",
+    muted: true,
+    scale: EXPORT_SCALE,
+    signal: opts.signal,
+    isProduction: true,
+    onProgress: (p) => opts.onProgress(p.progress),
+  });
+  return result.getBlob();
 }
 
 type Tab = "scenes" | "shorts" | "social" | "subtitles";
@@ -102,6 +156,10 @@ export function App() {
   const [edited, setEdited] = useState(false);
   /** 每重排一次就換 key，讓 cue sheet 播一次進場動態 */
   const [generation, setGeneration] = useState(0);
+  /** null = 還沒偵測；false = 這台瀏覽器不支援，按鈕要說明原因 */
+  const [canExport, setCanExport] = useState<{ ok: boolean; why: string } | null>(null);
+  const [exporting, setExporting] = useState<number | null>(null);
+  const exportAbort = useRef<AbortController | null>(null);
   const [aspect, setAspect] = useState<"16:9" | "9:16">("16:9");
   const [tab, setTab] = useState<Tab>("scenes");
   const [source, setSource] = useState<Source>({ kind: "master" });
@@ -174,6 +232,63 @@ export function App() {
     setEdited(true);
     setBrief((b) => ({ ...b, ...p }));
   };
+
+  // WebCodecs 不是每個瀏覽器都有（Firefox 目前就不完整）。
+  // 先問，不支援就把按鈕換成一句說明，不要讓人按了才失敗。
+  useEffect(() => {
+    let alive = true;
+    void (async () => {
+      try {
+        const { canRenderMediaOnWeb } = await import("@remotion/web-renderer");
+        const r = await canRenderMediaOnWeb({
+          width: 1920,
+          height: 1080,
+          container: "mp4",
+          muted: true,
+        });
+        if (alive) {
+          setCanExport({
+            ok: r.canRender,
+            why: r.issues.map((i) => i.message).join(" · "),
+          });
+        }
+      } catch {
+        if (alive) setCanExport({ ok: false, why: "This browser cannot encode video." });
+      }
+    })();
+    return () => {
+      alive = false;
+    };
+  }, []);
+
+  const exportMp4 = useCallback(async () => {
+    if (!shownScenes.length) return;
+    const ctrl = new AbortController();
+    exportAbort.current = ctrl;
+    setExporting(0);
+    try {
+      const blob = await renderInBrowser({
+        scenes: shownScenes,
+        brand: videoBrand,
+        assetMap,
+        vertical: source.kind !== "master",
+        signal: ctrl.signal,
+        onProgress: (r) => setExporting(Math.round(r * 100)),
+      });
+      saveBlob(
+        source.kind === "master" ? "main-video.mp4" : `short-${source.index + 1}.mp4`,
+        blob,
+      );
+    } catch (err) {
+      if (!ctrl.signal.aborted) {
+        console.error(err);
+        setCanExport({ ok: false, why: "Encoding failed in this browser." });
+      }
+    } finally {
+      exportAbort.current = null;
+      setExporting(null);
+    }
+  }, [shownScenes, videoBrand, assetMap, source]);
 
   const onPlates = (files: FileList | null) => {
     if (!files?.length) return;
@@ -481,7 +596,7 @@ export function App() {
                   inputProps={{
                     scenes: shownScenes,
                     brand: videoBrand,
-                    subtitleStyle: "classic",
+                    subtitleStyle: SUBTITLE_STYLE,
                     assetMap,
                     voiceoverUrl: null,
                     musicUrl: null,
@@ -630,6 +745,29 @@ export function App() {
           </div>
 
           <div className="deliverables">
+            {exporting === null ? (
+              <button
+                type="button"
+                className="btn"
+                onClick={exportMp4}
+                disabled={canExport ? !canExport.ok : true}
+                title={canExport && !canExport.ok ? canExport.why : undefined}
+              >
+                {canExport === null
+                  ? "Checking encoder…"
+                  : canExport.ok
+                    ? "Render MP4 in your browser"
+                    : "MP4 export unavailable here"}
+              </button>
+            ) : (
+              <button
+                type="button"
+                className="btn btn-ghost"
+                onClick={() => exportAbort.current?.abort()}
+              >
+                Encoding {exporting}% — cancel
+              </button>
+            )}
             <button
               type="button"
               className="btn btn-ghost"
@@ -651,6 +789,10 @@ export function App() {
               Download plan JSON
             </button>
           </div>
+          <p className="aside" style={{ marginTop: 10 }}>
+            The MP4 is encoded by your own browser at half size and without audio — no server
+            touches it. The shipped pipeline renders 1080p with voiceover on a worker.
+          </p>
 
           {strategy?.needsConfirmation && strategy.needsConfirmation.length > 0 && (
             <p className="note" style={{ marginTop: 26 }}>

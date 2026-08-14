@@ -142,8 +142,10 @@ function SceneBlock({
   const titleSize = isVertical ? 76 : 88;
   const subtitleSize = isVertical ? 34 : 38;
   const pad = isVertical ? 72 : 110;
-  // 燒錄字幕固定佔住畫面底部（見 SUBTITLE_BAND）；貼底的文字要讓開這條帶狀區，
-  // 否則標題會和字幕疊在一起。
+  // 燒錄字幕固定佔住畫面底部（見 SUBTITLE_BAND），所以可用畫面是「整幀減掉字幕帶」。
+  // **五種版面都要讓開**：貼底的會直接疊在字幕上，置中的則是內容一長就伸進字幕帶
+  // （實測過 center 模式兩行標題就撞上了）。置中版面加下內距等於把內容往上推，
+  // 也就是改成在可用區域內置中，這才是正確的行為。
   const subtitleSafeBottom = Math.max(pad, SUBTITLE_BAND(isVertical));
 
   // onImage：文字直接壓在素材上。素材可能是淺色照片或截圖，
@@ -215,7 +217,14 @@ function SceneBlock({
         <AbsoluteFill>
           <KenBurnsImage src={assetUrl} mode="blur" durationFrames={durationFrames} seed={index} />
         </AbsoluteFill>
-        <AbsoluteFill style={{ justifyContent: "center", alignItems: "center", padding: pad }}>
+        <AbsoluteFill
+          style={{
+            justifyContent: "center",
+            alignItems: "center",
+            padding: pad,
+            paddingBottom: subtitleSafeBottom,
+          }}
+        >
           <div style={{ textAlign: "center" }}>{renderText("#FFFFFF", true)}</div>
         </AbsoluteFill>
       </>
@@ -233,6 +242,7 @@ function SceneBlock({
             display: "flex",
             alignItems: "center",
             padding: pad * 0.7,
+            paddingBottom: subtitleSafeBottom,
             boxSizing: "border-box",
           }}
         >
@@ -249,6 +259,7 @@ function SceneBlock({
           alignItems: "center",
           gap: 48,
           padding: pad,
+          paddingBottom: subtitleSafeBottom,
         }}
       >
         <div
@@ -272,6 +283,7 @@ function SceneBlock({
           justifyContent: "center",
           alignItems: "center",
           padding: pad,
+          paddingBottom: subtitleSafeBottom,
           flexDirection: "column",
           gap: 40,
         }}
